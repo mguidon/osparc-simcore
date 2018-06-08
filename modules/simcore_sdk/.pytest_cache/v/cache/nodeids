@@ -1,0 +1,4 @@
+[
+  "models/tests/test_alchemy.py::test_alchemy",
+  "models/tests/test_postgres.py::test_postgres"
+]

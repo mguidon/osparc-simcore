@@ -1,0 +1,3 @@
+{
+  "test/test_ci.py::test_integration": true
+}

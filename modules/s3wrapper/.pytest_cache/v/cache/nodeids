@@ -1,0 +1,14 @@
+[
+  "tests/test_minio.py::test_minio",
+  "tests/test_s3_client.py::test_create_remove_bucket",
+  "tests/test_s3_client.py::test_create_remove_bucket_with_contents",
+  "tests/test_s3_client.py::test_file_upload_download",
+  "tests/test_s3_client.py::test_file_upload_meta_data",
+  "tests/test_s3_client.py::test_sub_folders",
+  "tests/test_s3_client.py::test_search",
+  "tests/test_s3_client.py::test_presigned_put",
+  "tests/test_s3_client.py::test_presigned_put_expired",
+  "tests/test_s3_client.py::test_presigned_get",
+  "tests/test_s3_client.py::test_presigned_get_expired",
+  "tests/test_s3_client.py::test_object_exists"
+]
