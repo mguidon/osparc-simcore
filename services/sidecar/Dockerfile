@@ -20,7 +20,7 @@ VOLUME /work/sidecar
 VOLUME /work/packages
 
 # NO clue why this does not work without explicitly specifying
-ENTRYPOINT celery -A sidecar worker -c 2 --loglevel=info
+ENTRYPOINT celery -A sidecar worker -c 2  --loglevel=info
 
 FROM common as production
 

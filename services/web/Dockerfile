@@ -75,11 +75,11 @@ VOLUME /home/scu/server/
 VOLUME /home/scu/client/
 VOLUME /home/scu/packages
 
-CMD ["-H", "0.0.0.0", \
-     "-P", "8080", \
-     "server:create_app"]
+#CMD ["-H", "0.0.0.0", \
+#     "-P", "8080", \
+#     "server:create_app"]
 
-
+ENTRYPOINT ["/bin/sh", "-c", "adev runserver --host 0.0.0.0 --port 8080 --app-factory create_app server.py"]
 # ------------------------------------------------------------------------------------------
 FROM base-stage as ci
 

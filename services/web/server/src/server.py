@@ -42,7 +42,7 @@ def create_app(args=()):
     SIO.attach(app)
 
     # subscribe to rabbit
-    app.on_startup.append(subscribe)
+    #app.on_startup.append(subscribe)
 
     # http requests handlers
     async def _index(request):
