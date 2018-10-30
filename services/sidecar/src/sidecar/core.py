@@ -155,6 +155,8 @@ class Sidecar:
         channel.basic_publish(exchange=self._pika.progress_channel, routing_key='', body=prog_body)
 
     def _bg_job(self, log_file):
+        #FIXME: rabbit not properly setup in testing mode
+        return
         connection = pika.BlockingConnection(self._pika.parameters)
 
         channel = connection.channel()
@@ -308,9 +310,12 @@ class Sidecar:
             docker_image = self._docker.image_name + ":" + self._docker.image_tag
             self._docker.client.containers.run(docker_image, "run",
                  detach=False, remove=True,
-                 volumes = {'services_input'  : {'bind' : '/input'},
-                            'services_output' : {'bind' : '/output'},
-                            'services_log'    : {'bind'  : '/log'}},
+                 #volumes = {'services_input'  : {'bind' : '/input'},
+                 #           'services_output' : {'bind' : '/output'},
+                 #           'services_log'    : {'bind'  : '/log'}},
+                 volumes = {'/home/guidon/input'  : {'bind' : '/input'},
+                            '/home/guidon/output' : {'bind' : '/output'},
+                            '/home/guidon/log'    : {'bind'  : '/log'}},
                  environment=self._docker.env)
         except docker.errors.ContainerError as _e:
             log.error("Run container returned non zero exit code")
@@ -328,29 +333,29 @@ class Sidecar:
         log.debug('DONE Processing Pipeline %s and node %s from container', self._task.pipeline_id, self._task.internal_id)
 
     def run(self):
-        connection = pika.BlockingConnection(self._pika.parameters)
+    #    connection = pika.BlockingConnection(self._pika.parameters)
 
-        channel = connection.channel()
-        channel.exchange_declare(exchange=self._pika.log_channel, exchange_type='fanout', auto_delete=True)
+    #    channel = connection.channel()
+    #    channel.exchange_declare(exchange=self._pika.log_channel, exchange_type='fanout', auto_delete=True)
 
         msg = "Preprocessing start..."
-        self._log(channel, msg)
+    #    self._log(channel, msg)
         self.preprocess()
         msg = "...preprocessing end"
-        self._log(channel, msg)
+    #    self._log(channel, msg)
 
         msg = "Processing start..."
-        self._log(channel, msg)
+    #    self._log(channel, msg)
         self.process()
         msg = "...processing end"
-        self._log(channel, msg)
+    #    self._log(channel, msg)
 
         msg = "Postprocessing start..."
-        self._log(channel, msg)
+    #    self._log(channel, msg)
         self.postprocess()
         msg = "...postprocessing end"
-        self._log(channel, msg)
-        connection.close()
+    #    self._log(channel, msg)
+    #    connection.close()
 
 
     def postprocess(self):
