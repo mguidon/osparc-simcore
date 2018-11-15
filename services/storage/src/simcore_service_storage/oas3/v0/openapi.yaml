@@ -242,6 +242,13 @@ paths:
         required: false
         schema:
           type: string
+      requestBody:
+        description: Extra source information if not upload but copy
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: './components/schemas/extra_source.yaml#/components/schemas/ExtraSourceType'
       responses:
         '200':
           $ref: '#/components/responses/PresignedLink_200'

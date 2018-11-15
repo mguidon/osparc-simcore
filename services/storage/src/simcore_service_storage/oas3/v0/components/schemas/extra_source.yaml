@@ -1,0 +1,24 @@
+components:
+  schemas:
+    ExtraSourceEnveloped:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: '#/components/schemas/ExtraSourceType'
+        error:
+          nullable: true
+          default: null
+
+    ExtraSourceType:
+      type: object
+      properties:
+        file_uuid:
+          type: string
+        location_id:
+          type: string
+      example:
+        file_uuid: '105/1000/3'
+        location_id: "0"

@@ -210,7 +210,7 @@ async def upload_file(request: web.Request):
 
     assert params, "params %s" % params
     assert query, "query %s" % query
-    assert not body, "body %s" % body
+    # assert not body, "body %s" % body
 
     assert params["location_id"]
     assert params["fileId"]

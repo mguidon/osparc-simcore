@@ -136,7 +136,13 @@ async def test_download_link(client, dsm_mockup_db):
 async def test_upload_link(client, dsm_mockup_db):
     for d in dsm_mockup_db.keys():
         fmd = dsm_mockup_db[d]
-        resp = await client.put("/v0/locations/0/files/{}?user_id={}".format(quote(fmd.file_uuid, safe=''), fmd.user_id))
+
+        extra_source = {
+            'location_id': '0',
+            'file_uuid': '1/2/2.dat',
+        }
+
+        resp = await client.put("/v0/locations/0/files/{}?user_id={}".format(quote(fmd.file_uuid, safe=''), fmd.user_id), json=extra_source)
         payload = await resp.json()
         assert resp.status == 200, str(payload)
 
