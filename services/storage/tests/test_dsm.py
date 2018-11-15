@@ -28,6 +28,8 @@ from utils import BUCKET_NAME
 def test_mockup(dsm_mockup_db):
     assert len(dsm_mockup_db)==100
 
+# Too many branches (13/12) (too-many-branches)
+# pylint: disable=R0912
 async def test_dsm_s3(dsm_mockup_db, dsm_fixture):
     id_name_map = {}
     id_file_count = {}
@@ -350,7 +352,7 @@ async def test_redirect_copy(s3_client, mock_files_factory):
 
     # get download link
     down_url = s3_client.create_presigned_put_url(BUCKET_NAME, object_name)
-    object_name2 = object_name + "my_file2" 
+    object_name2 = object_name + "my_file2"
     up_url = s3_client.create_presigned_get_url(BUCKET_NAME, object_name2)
 
     print(down_url, up_url)
@@ -374,7 +376,7 @@ async def test_redirect_copy(s3_client, mock_files_factory):
 
 def test_boto3(minio_service, s3_client):
     s3_client.create_bucket(BUCKET_NAME)
-    
+
     import boto3
 
     client = boto3.resource(
