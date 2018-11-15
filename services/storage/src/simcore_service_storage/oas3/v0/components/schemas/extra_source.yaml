@@ -4,7 +4,6 @@ components:
       type: object
       required:
         - data
-        - error
       properties:
         data:
           $ref: '#/components/schemas/ExtraSourceType'

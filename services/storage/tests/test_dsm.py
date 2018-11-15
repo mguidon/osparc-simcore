@@ -339,7 +339,9 @@ def test_fmd_build():
     assert fmd.bucket_name == "test-bucket"
 
 
-async def test_redirect_copy(s3_client, mock_files_factory):
+async def test_boto3(minio_service, s3_client, mock_files_factory):
+    s3_client.create_bucket(BUCKET_NAME)
+
     # create temporary file and upload to s3
     tmp_file = mock_files_factory(1)[0]
     object_name = "my_file"
@@ -351,39 +353,75 @@ async def test_redirect_copy(s3_client, mock_files_factory):
         urllib.request.urlopen(req)
 
     # get download link
-    down_url = s3_client.create_presigned_put_url(BUCKET_NAME, object_name)
-    object_name2 = object_name + "my_file2"
-    up_url = s3_client.create_presigned_get_url(BUCKET_NAME, object_name2)
+    down_url = s3_client.create_presigned_get_url(BUCKET_NAME, object_name)
 
-    print(down_url, up_url)
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(down_url) as resp:
-            chunk = await resp.content.read(1024)
-            await session.put(up_url, data=chunk, chunked=1024)
-            while chunk:
-                chunk = await resp.content.read(1024)
-                await session.put(up_url, data=chunk, chunked=1024)
+    kb = 1024 # bytes
+    mb = 1024 * kb
+    CHUNK_SIZE = 8 * mb
 
+
+
+    #import boto3
+    import aioboto3
+
+    async with aioboto3.resource(
+        's3',
+        endpoint_url="http://"+minio_service["endpoint"],
+        aws_access_key_id=minio_service["access_key"],
+        aws_secret_access_key=minio_service["secret_key"]) as s3:
+
+        buckets = await s3.buckets
+
+
+        bucket = BUCKET_NAME
+        url = 'http://speedtest.wdc01.softlayer.com/downloads/test100.zip'
+        object_name2 = object_name + "2"
+
+        key = "test"
+
+        mpu = await s3.meta.client.create_multipart_upload(Bucket=bucket, Key=object_name2)
+
+        print('S3 multipart upload created with UploadId: {}', mpu['UploadId'])
+        part_no = 0
+        parts = {
+            'Parts': []
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(down_url) as response:
+                assert response.status == 200
+
+                data = bytearray()
+                data_to_read = True
+                while data_to_read:
+                    red = 0
+                    data.clear()
+                    while red < CHUNK_SIZE:
+                        chunk = await response.content.readany()
+                        if not chunk:
+                            data_to_read = False
+                            break
+                        data.extend(chunk)
+                        red += len(chunk)
+                    part_no +=1
+                    part = await s3.meta.client.upload_part(Body=data,
+                                          Bucket=bucket,
+                                          Key=object_name2,
+                                          PartNumber=part_no,
+                                          UploadId=mpu['UploadId'])
+
+                    parts['Parts'].append({
+                        'ETag': part['ETag'],
+                        'PartNumber': part_no
+                    })
+                del data
+                await s3.meta.client.complete_multipart_upload(Bucket=bucket,
+                                             Key=object_name2,
+                                             MultipartUpload=parts,
+                                             UploadId=mpu['UploadId'])
 
 
     files = s3_client.list_objects(BUCKET_NAME)
     f = [f for f in files]
     assert len(f) == 2
-            #chunk = await resp.content.read(1024)
-            #while chunk:
-            #    chunk = await resp.content.read(1024)
-
-def test_boto3(minio_service, s3_client):
-    s3_client.create_bucket(BUCKET_NAME)
-
-    import boto3
-
-    client = boto3.resource(
-        's3',
-        endpoint_url="http://"+minio_service["endpoint"],
-        aws_access_key_id=minio_service["access_key"],
-        aws_secret_access_key=minio_service["secret_key"])
-
-    for bucket in client.buckets.all():
-        print(bucket.name)

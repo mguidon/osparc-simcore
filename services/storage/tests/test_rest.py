@@ -142,6 +142,7 @@ async def test_upload_link(client, dsm_mockup_db):
             'file_uuid': '1/2/2.dat',
         }
 
+        extra_source = {}
         resp = await client.put("/v0/locations/0/files/{}?user_id={}".format(quote(fmd.file_uuid, safe=''), fmd.user_id), json=extra_source)
         payload = await resp.json()
         assert resp.status == 200, str(payload)
