@@ -248,6 +248,7 @@ qx.Class.define("qxapp.data.model.WorkbenchModel", {
       const allModels = this.getNodeModels(true);
       for (const nodeId in allModels) {
         const nodeModel = allModels[nodeId];
+        console.log(nodeModel);
         if (!saveContainers && nodeModel.isContainer()) {
           continue;
         }
@@ -261,6 +262,7 @@ qx.Class.define("qxapp.data.model.WorkbenchModel", {
           outputs: nodeModel.getOutputValues(), // can a container have outputs?
           parent: nodeModel.getParentNodeId()
         };
+        console.log(node);
 
         if (savePosition) {
           node.position = {
@@ -275,6 +277,7 @@ qx.Class.define("qxapp.data.model.WorkbenchModel", {
           node.version = nodeModel.getVersion();
         }
       }
+      console.log(workbench);
       return workbench;
     }
   }
