@@ -1,7 +1,7 @@
 version: '3.4'
 services:
   cc-0d:
-    image: masu.speag.com/simcore/services/dynamic/cc-0d-viewer:${SERVICES_VERSION}
+    image: ${DOCKER_REGISTRY}/simcore/services/dynamic/cc-0d-viewer:${SERVICES_VERSION}
     build:
       context: .
       dockerfile: cc/Dockerfile
@@ -29,7 +29,7 @@ services:
       - '1234:8888'
   #--------------------------------------------------------------------
   cc-1d:
-    image: masu.speag.com/simcore/services/dynamic/cc-1d-viewer:${SERVICES_VERSION}
+    image: ${DOCKER_REGISTRY}/simcore/services/dynamic/cc-1d-viewer:${SERVICES_VERSION}
     build:
       context: .
       dockerfile: cc/Dockerfile
@@ -57,7 +57,7 @@ services:
       - '1235:8888'
   #--------------------------------------------------------------------
   cc-2d:
-    image: masu.speag.com/simcore/services/dynamic/cc-2d-viewer:${SERVICES_VERSION}
+    image: ${DOCKER_REGISTRY}/simcore/services/dynamic/cc-2d-viewer:${SERVICES_VERSION}
     build:
       context: .
       dockerfile: cc/Dockerfile
@@ -85,7 +85,7 @@ services:
       - '1236:8888'
   #--------------------------------------------------------------------
   kember:
-    image: masu.speag.com/simcore/services/dynamic/kember-viewer:${SERVICES_VERSION}
+    image: ${DOCKER_REGISTRY}/simcore/services/dynamic/kember-viewer:${SERVICES_VERSION}
     build:
       context: .
       dockerfile: kember/Dockerfile

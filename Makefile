@@ -43,7 +43,7 @@ PY_FILES = $(strip $(shell find services packages -iname '*.py' -not -path "*egg
 TEMPCOMPOSE := $(shell mktemp)
 
 export SERVICES_VERSION=2.8.0
-export DOCKER_REGISTRY=masu.speag.com
+export DOCKER_REGISTRY=registry.osparc.dev
 
 all:
 	@echo 'run `make build-devel` to build your dev environment'
@@ -185,9 +185,9 @@ test:
 	make run_test
 	make after_test
 
-PLATFORM_VERSION=3.28
+PLATFORM_VERSION=3.32
 DOCKER_REGISTRY=masu.speag.com
-#DOCKER_REGISTRY=registry.osparc.io
+DOCKER_REGISTRY=registry.osparc.dev
 
 
 push_platform_images:
