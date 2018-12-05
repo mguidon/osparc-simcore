@@ -185,7 +185,7 @@ test:
 	make run_test
 	make after_test
 
-PLATFORM_VERSION=3.32
+PLATFORM_VERSION=3.33
 DOCKER_REGISTRY=masu.speag.com
 DOCKER_REGISTRY=registry.osparc.dev
 
