@@ -16,7 +16,7 @@ export DOCKER_COMPOSE=docker-compose
 export DOCKER=docker
 endif
 
-export VCS_REF=$(shell git rev-parse --short HEAD) 
+export VCS_REF=$(shell git rev-parse --short HEAD)
 export BUILD_DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 # export SERVICES_VERSION=2.7.0
 export SERVICE_PATH=simcore/services/dynamic/modeler/webserver
@@ -57,5 +57,5 @@ down:
 	${DOCKER_COMPOSE} -f docker-compose.yml -f docker-compose.devel.yml down
 
 push_service_images: check-env
-	${DOCKER} login masu.speag.com	
+	${DOCKER} login ${DOCKER_REGISTRY}
 	${DOCKER} push ${DOCKER_REGISTRY}/${SERVICE_PATH}:${SERVICES_VERSION}
