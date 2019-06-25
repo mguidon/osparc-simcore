@@ -124,13 +124,14 @@ qx.Class.define("qxapp.desktop.DataManager", {
       const addBtn = new qxapp.file.FilesAdd();
       addBtn.addListener("fileAdded", e => {
         const fileMetadata = e.getData();
-        this.__initResources(fileMetadata["location"]);
+        this.__initResources(fileMetadata["locationId"]);
       }, this);
       treeLayout.add(addBtn);
 
       const selectedFileLayout = this.__selectedFileLayout = new qxapp.file.FileLabelWithActions();
-      selectedFileLayout.addListener("fileDeleted", () => {
-        this.__initResources();
+      selectedFileLayout.addListener("fileDeleted", e => {
+        const fileMetadata = e.getData();
+        this.__initResources(fileMetadata["locationId"]);
       }, this);
       treeLayout.add(selectedFileLayout);
 

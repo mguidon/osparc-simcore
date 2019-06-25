@@ -1456,9 +1456,11 @@ qx.Class.define("qxapp.data.Store", {
       let req = new qxapp.io.request.ApiRequest(endPoint, "PUT");
 
       req.addListener("success", e => {
-        const {
-          data
-        } = e.getTarget().getResponse();
+        const data = {
+          data: e.getTarget().getResponse(),
+          locationId: toLoc,
+          fileUuid: pathId
+        };
         this.fireDataEvent("fileCopied", data);
       }, this);
 
@@ -1468,6 +1470,7 @@ qx.Class.define("qxapp.data.Store", {
         } = e.getTarget().getResponse();
         console.error(error);
         console.error("Failed copying file", fileUuid, "to", pathId);
+        qxapp.component.message.FlashMessenger.getInstance().logAs(this.tr("Failed copying file"), "ERROR");
         this.fireDataEvent("fileCopied", null);
       });
 
@@ -1487,9 +1490,11 @@ qx.Class.define("qxapp.data.Store", {
       let req = new qxapp.io.request.ApiRequest(endPoint, "DELETE");
 
       req.addListener("success", e => {
-        const {
-          data
-        } = e.getTarget().getResponse();
+        const data = {
+          data: e.getTarget().getResponse(),
+          locationId: locationId,
+          fileUuid: fileUuid
+        };
         this.fireDataEvent("deleteFile", data);
       }, this);
 
@@ -1498,6 +1503,7 @@ qx.Class.define("qxapp.data.Store", {
           error
         } = e.getTarget().getResponse();
         console.error("Failed deleting file", error);
+        qxapp.component.message.FlashMessenger.getInstance().logAs(this.tr("Failed deleting file"), "ERROR");
         this.fireDataEvent("deleteFile", null);
       });
 

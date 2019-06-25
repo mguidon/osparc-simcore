@@ -70,7 +70,8 @@ qx.Class.define("qxapp.component.widget.NodeDataManager", {
     }, this);
     userFilesTree.addListener("fileCopied", e => {
       if (e) {
-        this.__reloadUserTree();
+        const data = e.getData();
+        this.__reloadUserTree(data.locationId);
       }
     }, this);
     treesLayout.add(userFilesTree, {
@@ -78,9 +79,10 @@ qx.Class.define("qxapp.component.widget.NodeDataManager", {
     });
 
     let selectedFileLayout = this.__selectedFileLayout = this._createChildControlImpl("selectedFileLayout");
-    selectedFileLayout.addListener("fileDeleted", () => {
+    selectedFileLayout.addListener("fileDeleted", e => {
+      const fileMetadata = e.getData();
       this.__reloadNodeTree();
-      this.__reloadUserTree();
+      this.__reloadUserTree(fileMetadata["locationId"]);
     }, this);
 
     this.__reloadNodeTree();
@@ -120,8 +122,8 @@ qx.Class.define("qxapp.component.widget.NodeDataManager", {
       this.__nodeFilesTree.populateTree(this.getNode().getNodeId());
     },
 
-    __reloadUserTree: function() {
-      this.__userFilesTree.populateTree();
+    __reloadUserTree: function(locationId = null) {
+      this.__userFilesTree.populateTree(null, locationId);
     },
 
     __selectionChanged: function(selectedTree) {

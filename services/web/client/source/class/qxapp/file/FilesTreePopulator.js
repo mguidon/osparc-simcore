@@ -79,6 +79,7 @@ qx.Class.define("qxapp.file.FilesTreePopulator", {
       const treeName = "My Data";
       this.__resetTree(treeName);
       const rootModel = this.__tree.getModel();
+      rootModel.getChildren().removeAll();
       qxapp.file.FilesTreePopulator.addLoadingChild(rootModel);
 
       const store = qxapp.data.Store.getInstance();
@@ -95,6 +96,14 @@ qx.Class.define("qxapp.file.FilesTreePopulator", {
     },
 
     populateMyLocation: function(locationId = null) {
+      if (locationId) {
+        const locationModel = this.__getLocationModel(locationId);
+        if (locationModel) {
+          locationModel.getChildren().removeAll();
+          qxapp.file.FilesTreePopulator.addLoadingChild(locationModel);
+        }
+      }
+
       const store = qxapp.data.Store.getInstance();
       store.addListener("myDocuments", ev => {
         const {
@@ -133,6 +142,18 @@ qx.Class.define("qxapp.file.FilesTreePopulator", {
       });
     },
 
+    __getLocationModel: function(locationId) {
+      const rootModel = this.__tree.getModel();
+      const locationModels = rootModel.getChildren();
+      for (let i=0; i<locationModels.length; i++) {
+        const locationModel = locationModels.toArray()[i];
+        if (locationModel.getLocation() === locationId) {
+          return locationModel;
+        }
+      }
+      return null;
+    },
+
     __locationsToRoot: function(locations) {
       const rootModel = this.__tree.getModel();
       rootModel.getChildren().removeAll();
@@ -144,24 +165,19 @@ qx.Class.define("qxapp.file.FilesTreePopulator", {
           ""
         );
         const locationModel = qx.data.marshal.Json.createModel(locationData, true);
-        qxapp.file.FilesTreePopulator.addLoadingChild(locationModel);
         rootModel.getChildren().append(locationModel);
       }
     },
 
     __filesToLocation: function(files, locationId) {
-      const rootModel = this.__tree.getModel();
-      const locations = rootModel.getChildren();
-      for (let i=0; i<locations.length; i++) {
-        const location = locations.toArray()[i];
-        if (location.getLocation() === locationId) {
-          location.getChildren().removeAll();
-          if (files.length>0) {
-            const filesData = qxapp.data.Converters.fromDSMToVirtualTreeModel(files);
-            for (let j=0; j<filesData[0].children.length; j++) {
-              const filesModel = qx.data.marshal.Json.createModel(filesData[0].children[j], true);
-              location.getChildren().append(filesModel);
-            }
+      const locationModel = this.__getLocationModel(locationId);
+      if (locationModel) {
+        locationModel.getChildren().removeAll();
+        if (files.length>0) {
+          const filesData = qxapp.data.Converters.fromDSMToVirtualTreeModel(files);
+          for (let j=0; j<filesData[0].children.length; j++) {
+            const filesModel = qx.data.marshal.Json.createModel(filesData[0].children[j], true);
+            locationModel.getChildren().append(filesModel);
           }
         }
       }
