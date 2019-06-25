@@ -1327,12 +1327,14 @@ qx.Class.define("qxapp.data.Store", {
         if (files && files.length>0) {
           this.fireDataEvent("nodeFiles", files);
         }
+        this.fireDataEvent("nodeFiles", []);
       }, this);
 
       reqFiles.addListener("fail", e => {
         const {
           error
         } = e.getTarget().getResponse();
+        this.fireDataEvent("nodeFiles", []);
         console.error("Failed getting Node Files list", error);
       });
 
