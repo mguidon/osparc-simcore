@@ -88,19 +88,23 @@ qx.Class.define("qxapp.file.FilesTreePopulator", {
 
         for (let i=0; i<locations.length; i++) {
           const locationId = locations[i]["id"];
-
-          store.addListener("myDocuments", ev => {
-            const {
-              location,
-              files
-            } = ev.getData();
-            this.__filesToLocation(files, location);
-          }, this);
-
-          store.getFilesByLocation(locationId);
+          this.populateMyLocation(locationId);
         }
       }, this);
       store.getMyLocations();
+    },
+
+    populateMyLocation: function(locationId = null) {
+      const store = qxapp.data.Store.getInstance();
+      store.addListener("myDocuments", ev => {
+        const {
+          location,
+          files
+        } = ev.getData();
+        this.__filesToLocation(files, location);
+      }, this);
+
+      store.getFilesByLocation(locationId);
     },
 
     __resetTree: function(treeName) {
