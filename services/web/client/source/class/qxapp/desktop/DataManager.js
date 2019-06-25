@@ -50,7 +50,7 @@ qx.Class.define("qxapp.desktop.DataManager", {
     __selectedFileLayout: null,
     __pieChart: null,
 
-    __initResources: function(locationId) {
+    __initResources: function(locationId = null) {
       this.__filesTree.populateTree(null, locationId);
     },
 

@@ -127,7 +127,7 @@ qx.Class.define("qxapp.file.FilePicker", {
       return control || this.base(arguments, id);
     },
 
-    __initResources: function(locationId) {
+    __initResources: function(locationId = null) {
       this.__filesTree.populateTree(null, locationId);
     },
 
