@@ -8,10 +8,10 @@ import asyncio
 import datetime
 import logging
 import sys
+import urllib
 from pathlib import Path
 from pprint import pformat
 from typing import Dict
-import urllib
 
 import docker
 import pytest
@@ -25,9 +25,6 @@ RETRY_COUNT = 7
 MAX_WAIT_TIME=240
 
 logger = logging.getLogger(__name__)
-
-def _here() -> Path:
-    return Path(sys.argv[0] if __name__ == "__main__" else __file__).resolve().parent
 
 @pytest.fixture(scope="session")
 def here() -> Path:
@@ -43,15 +40,10 @@ def _osparc_simcore_root_dir(here) -> Path:
 def osparc_simcore_root_dir(here) -> Path:
     return _osparc_simcore_root_dir(here)
 
-
-def _services_docker_compose(osparc_simcore_root_dir) -> Dict[str, str]:
-    docker_compose_path = osparc_simcore_root_dir / "services" / "docker-compose.yml"
-    assert docker_compose_path.exists()
-
-    content = {}
-    with docker_compose_path.open() as f:
-        content = yaml.safe_load(f)
-    return content
+@pytest.fixture(scope='session')
+def osparc_simcore_services_dir(osparc_simcore_root_dir) -> Path:
+    services_dir = Path(osparc_simcore_root_dir) / "services"
+    return services_dir
 
 @pytest.fixture("session")
 def services_docker_compose(osparc_simcore_root_dir) -> Dict[str, str]:
@@ -60,12 +52,7 @@ def services_docker_compose(osparc_simcore_root_dir) -> Dict[str, str]:
 
 @pytest.fixture("session")
 def tools_docker_compose(osparc_simcore_root_dir) -> Dict[str, str]:
-    docker_compose_path = osparc_simcore_root_dir / "services" / "docker-compose.tools.yml"
-    assert docker_compose_path.exists()
-
-    content = {}
-    with docker_compose_path.open() as f:
-        content = yaml.safe_load(f)
+    content = _load_yaml(osparc_simcore_root_dir / "services" / "docker-compose-tools.yml")
     return content
 
 def _list_core_services():
@@ -86,6 +73,22 @@ def docker_client():
 
 
 # UTILS --------------------------------
+def _here() -> Path:
+    return Path(sys.argv[0] if __name__ == "__main__" else __file__).resolve().parent
+
+def _load_yaml(path:Path) -> Dict:
+    content = {}
+    assert path.exists()
+    with path.open() as f:
+        content = yaml.safe_load(f)
+    return content
+
+def _services_docker_compose(osparc_simcore_services_dir) -> Dict[str, str]:
+    # TODO: pip install docker-compose and use
+    # https://github.com/docker/compose/blob/master/compose/cli/main.py#L328
+    compose = _load_yaml(osparc_simcore_services_dir / "docker-compose.yml")
+    compose.update( _load_yaml(osparc_simcore_services_dir / "docker-compose-inst.yml") )
+    return compose
 
 def get_tasks_summary(tasks):
     msg = ""
@@ -118,9 +121,14 @@ def test_all_services_up(docker_client, services_docker_compose, tools_docker_co
     """
     running_services = docker_client.services.list()
 
-    assert (len(services_docker_compose["services"]) + len(tools_docker_compose["services"])) == len(running_services)
+    service_names = []
+    service_names += services_docker_compose["services"]
+    service_names += tools_docker_compose["services"]
 
-    # TODO: check names instead
+    assert len(service_names) == len(running_services)
+
+    for name in service_names:
+        assert any( name in s.name for s in running_services ), f"{name} not in {running_services}"
 
 
 async def test_core_service_running(core_service_name, docker_client, loop):
@@ -187,4 +195,3 @@ async def test_check_serve_root(docker_client, services_docker_compose, tools_do
         pytest.fail("The server could not fulfill the request.\nError code {}".format(err.code))
     except urllib.error.URLError as e:
         pytest.fail("Failed reaching the server..\nError reason {}".format(err.reason))
-
