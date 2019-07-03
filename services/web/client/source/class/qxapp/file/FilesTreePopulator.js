@@ -147,7 +147,7 @@ qx.Class.define("qxapp.file.FilesTreePopulator", {
       const locationModels = rootModel.getChildren();
       for (let i=0; i<locationModels.length; i++) {
         const locationModel = locationModels.toArray()[i];
-        if (locationModel.getLocation() === locationId) {
+        if (locationModel.getLocation() === locationId || String(locationModel.getLocation()) === locationId) {
           return locationModel;
         }
       }
