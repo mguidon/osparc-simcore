@@ -263,19 +263,33 @@ def get_project_with_data():
 @pytest.mark.parametrize("project_name,project", [ (prj['name'], prj) for prj in get_project_with_data()])
 async def test_create_and_delete_folders_from_project(client, dsm_mockup_db, project_name, project):
     source_project = project
-    destination_project = deepcopy(source_project)
-    destination_project['uuid'] = "83b42ecd-0725-444a-a8a5-a962770bf1c1"
+
+    def clone(original):
+        cloned = deepcopy(original)
+        cloned['uuid'] = "new-" + cloned['uuid']
+        nodes_map = {}
+        for node_uuid in original.get('workbench', {}).keys():
+            nodes_map[node_uuid] = "new-" + node_uuid
+        return cloned, nodes_map
+
+    destination_project, nodes_map = clone(source_project)
 
     # CREATING
     url = client.app.router["copy_folders_from_project"].url_for().with_query(user_id="1")
     resp = await client.post(url, json={
         'source':source_project,
-        'destination': destination_project
+        'destination': destination_project,
+        'nodes_map': nodes_map
     })
 
     data, _error = await assert_status(resp, expected_cls=web.HTTPCreated)
+
+
+
     assert data == destination_project #TODO: but wiht more info on files
     # TODO: check that data is actually in s3
+
+
 
 
     # DELETING

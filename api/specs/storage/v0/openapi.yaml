@@ -295,6 +295,11 @@ paths:
                   $ref: './openapi.yaml#/components/schemas/Project'
                 destination:
                   $ref: './openapi.yaml#/components/schemas/Project'
+                nodes_map:
+                  type: object
+                  description: maps source and destination node uuids
+                  additionalProperties:
+                    type: string
       responses:
         '201':
           description: Data from destination project copied and returns project

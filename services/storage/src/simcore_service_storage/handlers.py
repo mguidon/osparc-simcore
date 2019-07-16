@@ -255,6 +255,11 @@ async def create_folders_from_project(request: web.Request):
     body = await request.json()
     source_project = body.get('source', {})
     destination_project = body.get('destination', {})
+    nodes_map = body.get('nodes_map', {})
+
+    assert set(nodes_map.keys()) == (source_project['workbench'].keys())
+    assert set(nodes_map.values()) == (destination_project['workbench'].keys())
+
     # TODO: validate project with jsonschema instead??
 
 
