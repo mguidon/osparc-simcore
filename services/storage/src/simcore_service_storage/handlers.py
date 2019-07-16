@@ -250,8 +250,6 @@ async def create_folders_from_project(request: web.Request):
     #FIXME: Update openapi-core. Fails with additionalProperties https://github.com/p1c2u/openapi-core/issues/124. Fails with project
     # params, query, body = await extract_and_validate(request)
 
-
-    folder_id = request.match_info['folder_id']
     user_id = request.query.get("user_id")
 
     body = await request.json()
@@ -260,11 +258,24 @@ async def create_folders_from_project(request: web.Request):
     # TODO: validate project with jsonschema instead??
 
 
+    # TODO: implement
     # dsm = await _prepare_storage_manager(params, request.query, request)
     #_discard = await dsm.delete_file(user_id=user_id, location=location, file_uuid=file_uuid)
 
     raise web.HTTPCreated(text=json.dumps(destination_project),
                                 content_type='application/json')
+
+async def delete_folders_of_project(request: web.Request):
+    folder_id = request.match_info['folder_id']
+    user_id = request.query.get("user_id")
+
+    # TODO: implement
+
+    raise web.HTTPNoContent(content_type='application/json')
+
+
+
+
 
 # HELPERS -----------------------------------------------------
 INIT_STR = "init"

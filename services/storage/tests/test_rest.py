@@ -1,12 +1,16 @@
-# pylint: disable=R0913
-# pylint: disable=W0621
+# pylint:disable=wildcard-import
+# pylint:disable=unused-import
+# pylint:disable=unused-variable
+# pylint:disable=unused-argument
+# pylint:disable=redefined-outer-name
+
+import json
 import os
 from copy import deepcopy
 from urllib.parse import quote
 
 import pytest
 from aiohttp import web
-from yarl import URL
 
 from simcore_service_storage.db import setup_db
 from simcore_service_storage.dsm import setup_dsm
@@ -16,6 +20,7 @@ from simcore_service_storage.settings import APP_CONFIG_KEY, SIMCORE_S3_ID
 from utils import BUCKET_NAME, USER_ID, has_datcore_tokens
 from utils_assert import assert_status
 
+current_dir = Path(sys.argv[0] if __name__ == "__main__" else __file__).resolve().parent
 
 def parse_db(dsm_mockup_db):
     id_name_map = {}
@@ -244,29 +249,34 @@ async def test_action_check(client):
     assert data['query_value'] == QUERY
 
 
-async def test_create_folders_from_project(client, dsm_mockup_db):
-    source_project = {
-        "uuid": "e50d23df-71df-454c-875f-61da46ebf286",
-        "name": "Minimal name",
-        "description": "this description should not change",
-        "prjOwner": "me but I will be removed anyway",
-        "creationDate": "today",
-        "lastChangeDate": "tomorrow",
-        "thumbnail": "",
-        "workbench": {}
-    }
+
+def get_project_with_data():
+    projects = []
+    with open(current_dir / "data/projects_with_data.json") as fp:
+        projects = json.load(fp)
+
+    # TODO: add schema validation
+    return projects
+
+
+@pytest.mark.parametrize("project_name,project", [ (prj['name'], prj) for prj in get_project_with_data()])
+async def test_create_and_delete_folders_from_project(client, dsm_mockup_db, project_name, project):
+    source_project = project
     destination_project = deepcopy(source_project)
     destination_project['uuid'] = "83b42ecd-0725-444a-a8a5-a962770bf1c1"
 
-    folder_id = destination_project['uuid']
-    url = URL(f"/v0/folders/{folder_id}").with_query(user_id="1")
-
+    url = client.app.router["copy_folders_from_project"].url_for().with_query(user_id="1")
     resp = await client.post(url, json={
         'source':source_project,
         'destination': destination_project
     })
 
-    data, _error = await assert_status(resp, expected_cls=web.HTTPOk)
     data, _error = await assert_status(resp, expected_cls=web.HTTPCreated)
 
     assert data == destination_project #TODO: but wiht more info on files
+
+    # TODO: check that data is actually in s3
+
+    project_id = data['uuid']
+    url = client.app.router["delete_folders_of_project"].url_for(folder_id=project_id).with_query(user_id="1")
+    resp = await client.delete(url)
