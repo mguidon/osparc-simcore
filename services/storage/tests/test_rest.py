@@ -6,7 +6,9 @@
 
 import json
 import os
+import sys
 from copy import deepcopy
+from pathlib import Path
 from urllib.parse import quote
 
 import pytest
@@ -258,13 +260,13 @@ def get_project_with_data():
     # TODO: add schema validation
     return projects
 
-
 @pytest.mark.parametrize("project_name,project", [ (prj['name'], prj) for prj in get_project_with_data()])
 async def test_create_and_delete_folders_from_project(client, dsm_mockup_db, project_name, project):
     source_project = project
     destination_project = deepcopy(source_project)
     destination_project['uuid'] = "83b42ecd-0725-444a-a8a5-a962770bf1c1"
 
+    # CREATING
     url = client.app.router["copy_folders_from_project"].url_for().with_query(user_id="1")
     resp = await client.post(url, json={
         'source':source_project,
@@ -272,11 +274,13 @@ async def test_create_and_delete_folders_from_project(client, dsm_mockup_db, pro
     })
 
     data, _error = await assert_status(resp, expected_cls=web.HTTPCreated)
-
     assert data == destination_project #TODO: but wiht more info on files
-
     # TODO: check that data is actually in s3
 
+
+    # DELETING
     project_id = data['uuid']
     url = client.app.router["delete_folders_of_project"].url_for(folder_id=project_id).with_query(user_id="1")
     resp = await client.delete(url)
+
+    await assert_status(resp, expected_cls=web.HTTPNoContent)
