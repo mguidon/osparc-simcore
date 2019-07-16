@@ -1,19 +1,20 @@
 # pylint: disable=R0913
 # pylint: disable=W0621
 import os
+from copy import deepcopy
 from urllib.parse import quote
 
 import pytest
 from aiohttp import web
 from yarl import URL
 
-
 from simcore_service_storage.db import setup_db
 from simcore_service_storage.dsm import setup_dsm
 from simcore_service_storage.rest import setup_rest
 from simcore_service_storage.s3 import setup_s3
 from simcore_service_storage.settings import APP_CONFIG_KEY, SIMCORE_S3_ID
-from utils import has_datcore_tokens, USER_ID, BUCKET_NAME
+from utils import BUCKET_NAME, USER_ID, has_datcore_tokens
+from utils_assert import assert_status
 
 
 def parse_db(dsm_mockup_db):
@@ -244,8 +245,8 @@ async def test_action_check(client):
 
 
 async def test_create_folders_from_project(client, dsm_mockup_db):
-    default_project = {
-        "uuid": "0000000-invalid-uuid",
+    source_project = {
+        "uuid": "e50d23df-71df-454c-875f-61da46ebf286",
         "name": "Minimal name",
         "description": "this description should not change",
         "prjOwner": "me but I will be removed anyway",
@@ -254,14 +255,18 @@ async def test_create_folders_from_project(client, dsm_mockup_db):
         "thumbnail": "",
         "workbench": {}
     }
+    destination_project = deepcopy(source_project)
+    destination_project['uuid'] = "83b42ecd-0725-444a-a8a5-a962770bf1c1"
 
-    folder_id = "asdf"
-    url = URL("/v0/folders/{}".format(folder_id)).with_query(user_id="1")
-    import pdb; pdb.set_trace()
+    folder_id = destination_project['uuid']
+    url = URL(f"/v0/folders/{folder_id}").with_query(user_id="1")
 
-    resp = await client.post(url, json=default_project)
+    resp = await client.post(url, json={
+        'source':source_project,
+        'destination': destination_project
+    })
 
-    payload = await resp.json()
-    import pdb; pdb.set_trace()
+    data, _error = await assert_status(resp, expected_cls=web.HTTPOk)
+    data, _error = await assert_status(resp, expected_cls=web.HTTPCreated)
 
-    data, error = tuple( payload.get(k) for k in ('data', 'error') )
+    assert data == destination_project #TODO: but wiht more info on files

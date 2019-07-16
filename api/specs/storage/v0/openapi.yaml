@@ -294,15 +294,19 @@ paths:
         content:
           application/json:
             schema:
-               $ref: '../../webserver/v0/openapi-projects.yaml#/components/schemas/Project'
+              type: object
+              properties:
+                source:
+                  $ref: './openapi.yaml#/components/schemas/Project'
+                destination:
+                  $ref: './openapi.yaml#/components/schemas/Project'
       responses:
         '201':
-          description: folder created
+          description: Created folderfor destination project
           content:
             application/json:
               schema:
-                $ref: '../../webserver/v0/openapi-projects.yaml#/components/schemas/ProjectEnveloped'
-                #$ref: '#/components/requestBodies/FileMetaDataBody'
+                $ref: './openapi.yaml#/components/schemas/Project'
         default:
           $ref: './openapi.yaml#/components/responses/DefaultErrorResponse'
     #delete:
@@ -328,6 +332,9 @@ paths:
     #      $ref: '#/components/responses/DefaultErrorResponse'
 
 components:
+  schemas:
+    Project:
+      $ref: '../../webserver/v0/openapi-projects.yaml#/components/schemas/Project'
   responses:
     OK_NoContent_204:
       description: everything is OK, but there is no content to return
