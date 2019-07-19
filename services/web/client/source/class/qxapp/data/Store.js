@@ -1441,6 +1441,45 @@ qx.Class.define("qxapp.data.Store", {
       reqFiles.send();
     },
 
+    getFilesByLocationAndDataset: function(locationId, datasetId) {
+      if (locationId === 1 && !qxapp.data.Permissions.getInstance().canDo("storage.datcore.read")) {
+        return;
+      }
+      // Get list of file meta data
+      const endPoint = "/storage/locations/" + locationId + "/datasets/" + datasetId + "/files/metadata";
+      const reqFiles = new qxapp.io.request.ApiRequest(endPoint, "GET");
+
+      reqFiles.addListener("success", eFiles => {
+        const files = eFiles.getTarget().getResponse()
+          .data;
+        console.log("My Files", files);
+        const data = {
+          location: locationId,
+          dataset: datasetId,
+          files: []
+        };
+        if (files && files.length>0) {
+          data.files = files;
+        }
+        this.fireDataEvent("myDocuments", data);
+      }, this);
+
+      reqFiles.addListener("fail", e => {
+        const {
+          error
+        } = e.getTarget().getResponse();
+        const data = {
+          location: locationId,
+          dataset: datasetId,
+          files: []
+        };
+        this.fireDataEvent("myDocuments", data);
+        console.error("Failed getting Files list", error);
+      });
+
+      reqFiles.send();
+    },
+
     getPresignedLink: function(download = true, locationId, fileUuid) {
       if (download && !qxapp.data.Permissions.getInstance().canDo("study.node.data.pull", true)) {
         return;
