@@ -115,27 +115,6 @@ qx.Class.define("qxapp.file.FilesTreePopulator", {
       store.getDatasetsByLocation(locationId);
     },
 
-    populateMyDatasets: function(locationId = null, datasetId) {
-      if (locationId !== null) {
-        const locationModel = this.__getLocationModel(locationId);
-        if (locationModel) {
-          locationModel.getChildren().removeAll();
-          qxapp.file.FilesTreePopulator.addLoadingChild(locationModel);
-        }
-      }
-
-      const store = qxapp.data.Store.getInstance();
-      store.addListener("myDocuments", ev => {
-        const {
-          location,
-          files
-        } = ev.getData();
-        this.__filesToLocation(location, files);
-      }, this);
-
-      store.getFilesByLocation(locationId);
-    },
-
     addFileEntryToTree: function(fileEntry) {
       const filesData = qxapp.data.Converters.fromDSMToVirtualTreeModel([fileEntry]);
       this.__fileToTree(filesData[0]);
