@@ -110,7 +110,7 @@ qx.Class.define("qxapp.file.FilesTreePopulator", {
           location,
           files
         } = ev.getData();
-        this.__filesToLocation(files, location);
+        this.__filesToLocation(location, files);
       }, this);
 
       store.getFilesByLocation(locationId);
@@ -174,7 +174,7 @@ qx.Class.define("qxapp.file.FilesTreePopulator", {
       }
     },
 
-    __filesToLocation: function(files, locationId) {
+    __filesToLocation: function(locationId, files) {
       const locationModel = this.__getLocationModel(locationId);
       if (locationModel) {
         locationModel.getChildren().removeAll();
