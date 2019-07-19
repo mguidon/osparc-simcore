@@ -43,7 +43,7 @@ qx.Class.define("qxapp.data.Store", {
     "servicesRegistered": "qx.event.type.Data",
     // "fakeFiles": "qx.event.type.Data",
     "myLocations": "qx.event.type.Data",
-    "maDatasets": "qx.event.type.Data",
+    "myDatasets": "qx.event.type.Data",
     "myDocuments": "qx.event.type.Data",
     "nodeFiles": "qx.event.type.Data",
     "presignedLink": "qx.event.type.Data",
