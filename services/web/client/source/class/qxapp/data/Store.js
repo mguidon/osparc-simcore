@@ -1458,11 +1458,8 @@ qx.Class.define("qxapp.data.Store", {
         const data = {
           location: locationId,
           dataset: datasetId,
-          files: []
+          files: files && files.length>0 ? files : []
         };
-        if (files && files.length>0) {
-          data.files = files;
-        }
         this.fireDataEvent("myDocuments", data);
       }, this);
 
