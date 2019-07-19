@@ -16,6 +16,7 @@ import attr
 import sqlalchemy as sa
 from aiohttp import web
 from aiopg.sa import Engine
+from blackfynn.base import UnauthorizedException
 from sqlalchemy.sql import and_
 from yarl import URL
 
@@ -23,7 +24,7 @@ from s3wrapper.s3_client import S3Client
 from servicelib.aiopg_utils import DBAPIError
 
 from .datcore_wrapper import DatcoreWrapper
-from .models import (FileMetaData, _location_from_id, _parse_datcore,
+from .models import (DatasetMetaData, FileMetaData, _location_from_id,
                      file_meta_data, projects, user_to_projects)
 from .s3 import get_config_s3
 from .settings import (APP_CONFIG_KEY, APP_DB_ENGINE_KEY, APP_DSM_KEY,
@@ -40,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 FileMetaDataVec = List[FileMetaData]
+DatasetMetaDataVec = List[DatasetMetaData]
 
 async def _setup_dsm(app: web.Application):
     cfg = app[APP_CONFIG_KEY]
@@ -74,8 +76,6 @@ class DatCoreApiToken:
 
     def to_tuple(self):
         return (self.api_token, self.api_secret)
-
-
 
 @attr.s(auto_attribs=True)
 class DataStorageManager:
@@ -156,10 +156,14 @@ class DataStorageManager:
         api_token, api_secret = self._get_datcore_tokens(user_id)
         logger.info("token: %s, secret %s", api_token, api_secret)
         if api_token:
-            dcw = DatcoreWrapper(api_token, api_secret, self.loop, self.pool)
-            profile = await dcw.ping()
-            if profile:
-                return True
+            try:
+                dcw = DatcoreWrapper(api_token, api_secret, self.loop, self.pool)
+                profile = await dcw.ping()
+                if profile:
+                    return True
+            except UnauthorizedException:
+                logger.exception("Connection to datcore not possible")
+
         return False
 
     # pylint: disable=too-many-arguments
@@ -220,6 +224,7 @@ class DataStorageManager:
 
                         d.raw_file_path = str(Path(d.project_id) / Path(d.node_id) / Path(d.file_name))
                         d.display_file_path = d.raw_file_path
+                        d.file_id = d.file_uuid
                         if d.node_name and d.project_name:
                             d.display_file_path = str(Path(d.project_name) / Path(d.node_name) / Path(d.file_name))
                         async with self.engine.acquire() as conn:
@@ -229,6 +234,7 @@ class DataStorageManager:
                             values(project_name=d.project_name,
                                     node_name = d.node_name,
                                     raw_file_path=d.raw_file_path,
+                                    file_id=d.file_id,
                                     display_file_path=d.display_file_path)
                             await conn.execute(query)
                             clean_data.append(d)
@@ -260,7 +266,7 @@ class DataStorageManager:
         elif location == DATCORE_STR:
             api_token, api_secret = self._get_datcore_tokens(user_id)
             dcw = DatcoreWrapper(api_token, api_secret, self.loop, self.pool)
-            data = await dcw.list_files_recursively()
+            data = await dcw.list_files_raw()
 
         if sortby:
             data = sorted(data, key=itemgetter(sortby))
@@ -285,6 +291,48 @@ class DataStorageManager:
                         filtered_data.append(d)
                         break
             return filtered_data
+
+        return data
+
+    async def list_files_dataset(self, user_id: str, location: str, dataset_id: str)->FileMetaDataVec:
+        # this is a cheap shot, needs fixing once storage/db is in sync
+        data = []
+        if location == SIMCORE_S3_STR:
+            data = await self.list_files(user_id, location, uuid_filter=dataset_id+"/")
+        elif location == DATCORE_STR:
+            api_token, api_secret = self._get_datcore_tokens(user_id)
+            dcw = DatcoreWrapper(api_token, api_secret, self.loop, self.pool)
+            data = await dcw.list_files_raw_dataset(dataset_id)
+
+        return data
+
+    async def list_datasets(self, user_id: str, location: str) -> DatasetMetaDataVec:
+        """ Returns a list of top level datasets
+
+            Works for simcore.s3 and datcore
+
+        """
+        data = []
+
+        if location == SIMCORE_S3_STR:
+            # get lis of all projects belonging to user
+            if self.has_project_db:
+                try:
+                    async with self.engine.acquire() as conn:
+                        joint_table = user_to_projects.join(projects)
+                        query = sa.select([projects]).select_from(joint_table)\
+                                .where(user_to_projects.c.user_id == user_id)
+                        async for row in conn.execute(query):
+                            proj_data = {key:value for key,value in row.items()}
+                            dmd = DatasetMetaData(dataset_id=proj_data["uuid"],
+                                display_name=proj_data["name"])
+                            data.append(dmd)
+                except DBAPIError as _err:
+                    logger.exception("Error querying database for project names")
+        elif location == DATCORE_STR:
+            api_token, api_secret = self._get_datcore_tokens(user_id)
+            dcw = DatcoreWrapper(api_token, api_secret, self.loop, self.pool)
+            data = await dcw.list_datasets()
 
         return data
 
@@ -316,6 +364,7 @@ class DataStorageManager:
             For datcore we need the full path
         """
         if location == SIMCORE_S3_STR:
+            to_delete = []
             async with self.engine.acquire() as conn:
                 query = sa.select([file_meta_data]).where(file_meta_data.c.file_uuid == file_uuid)
                 async for row in conn.execute(query):
@@ -325,19 +374,24 @@ class DataStorageManager:
                     if d.user_id == user_id:
                         if self.s3_client.remove_objects(d.bucket_name, [d.object_name]):
                             stmt = file_meta_data.delete().where(file_meta_data.c.file_uuid == file_uuid)
-                            await conn.execute(stmt)
+                            to_delete.append(stmt)
+
+            async with self.engine.acquire() as conn:
+                for stmt in to_delete:
+                    await conn.execute(stmt)
 
         elif location == DATCORE_STR:
             api_token, api_secret = self._get_datcore_tokens(user_id)
             dcw = DatcoreWrapper(api_token, api_secret, self.loop, self.pool)
-            destination, filename = _parse_datcore(file_uuid)
-            return await dcw.delete_file(destination, filename)
+            #destination, filename = _parse_datcore(file_uuid)
+            file_id = file_uuid
+            return await dcw.delete_file_by_id(file_id)
 
-    async def upload_file_to_datcore(self, user_id: str, local_file_path: str, destination: str, fmd: FileMetaData = None): # pylint: disable=W0613
+    async def upload_file_to_datcore(self, user_id: str, local_file_path: str, destination_id: str): # pylint: disable=W0613
         # uploads a locally available file to dat core given the storage path, optionally attached some meta data
         api_token, api_secret = self._get_datcore_tokens(user_id)
         dcw = DatcoreWrapper(api_token, api_secret, self.loop, self.pool)
-        await dcw.upload_file(destination, local_file_path, fmd)
+        await dcw.upload_file_to_id(destination_id, local_file_path)
 
         # actually we have to query the master db
     async def upload_link(self, user_id: str, file_uuid: str):
@@ -352,80 +406,94 @@ class DataStorageManager:
             if exists is None:
                 ins = file_meta_data.insert().values(**vars(fmd))
                 await conn.execute(ins)
-            bucket_name = self.simcore_bucket_name
-            object_name = file_uuid
-            return self.s3_client.create_presigned_put_url(bucket_name, object_name)
+
+        bucket_name = self.simcore_bucket_name
+        object_name = file_uuid
+        return self.s3_client.create_presigned_put_url(bucket_name, object_name)
+
+    async def copy_file_s3_s3(self, user_id: str, dest_uuid: str, source_uuid: str):
+        # source is s3, location is s3
+        to_bucket_name = self.simcore_bucket_name
+        to_object_name = dest_uuid
+        from_bucket = self.simcore_bucket_name
+        from_object_name = source_uuid
+        from_bucket_object_name = os.path.join(from_bucket, from_object_name)
+        # FIXME: This is not async!
+        self.s3_client.copy_object(to_bucket_name, to_object_name, from_bucket_object_name)
+        # update db
+        async with self.engine.acquire() as conn:
+            fmd = FileMetaData()
+            fmd.simcore_from_uuid(dest_uuid, self.simcore_bucket_name)
+            fmd.user_id = user_id
+            ins = file_meta_data.insert().values(**vars(fmd))
+            await conn.execute(ins)
+
+    async def copy_file_s3_datcore(self, user_id: str, dest_uuid: str, source_uuid: str):
+        # source is s3, get link and copy to datcore
+        bucket_name = self.simcore_bucket_name
+        object_name = source_uuid
+        filename = source_uuid.split("/")[-1]
+        tmp_dirpath = tempfile.mkdtemp()
+        local_file_path = os.path.join(tmp_dirpath, filename)
+        url = self.s3_client.create_presigned_get_url(bucket_name, object_name)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    f = await aiofiles.open(local_file_path, mode='wb')
+                    await f.write(await resp.read())
+                    await f.close()
+                    # and then upload
+                    await self.upload_file_to_datcore(user_id=user_id, local_file_path=local_file_path,
+                        destination_id=dest_uuid)
+        shutil.rmtree(tmp_dirpath)
+
+    async def copy_file_datcore_s3(self, user_id: str, dest_uuid: str, source_uuid: str, filename_missing: bool=False):
+        # 2 steps: Get download link for local copy, the upload link to s3
+        # TODO: This should be a redirect stream!
+        dc_link, filename = await self.download_link_datcore(user_id=user_id, file_id=source_uuid)
+        if filename_missing:
+            dest_uuid = str(Path(dest_uuid)/ filename)
+
+        s3_upload_link = await self.upload_link(user_id, dest_uuid)
+
+        tmp_dirpath = tempfile.mkdtemp()
+        local_file_path = os.path.join(tmp_dirpath,filename)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(dc_link) as resp:
+                if resp.status == 200:
+                    f = await aiofiles.open(local_file_path, mode='wb')
+                    await f.write(await resp.read())
+                    await f.close()
+                    s3_upload_link = URL(s3_upload_link)
+                    async with session.put(s3_upload_link, data=Path(local_file_path).open('rb')) as resp:
+                        if resp.status > 299:
+                            _response_text = await resp.text()
 
     async def copy_file(self, user_id: str, dest_location: str, dest_uuid: str, source_location: str, source_uuid: str):
         if source_location == SIMCORE_S3_STR:
             if dest_location == DATCORE_STR:
-                # source is s3, get link and copy to datcore
-                bucket_name = self.simcore_bucket_name
-                object_name = source_uuid
-                destination, filename = _parse_datcore(dest_uuid)
-                tmp_dirpath = tempfile.mkdtemp()
-                local_file_path = os.path.join(tmp_dirpath, filename)
-                url = self.s3_client.create_presigned_get_url(bucket_name, object_name)
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(url) as resp:
-                        if resp.status == 200:
-                            f = await aiofiles.open(local_file_path, mode='wb')
-                            await f.write(await resp.read())
-                            await f.close()
-                            # and then upload
-                            await self.upload_file_to_datcore(user_id=user_id, local_file_path=local_file_path,
-                                destination=destination)
-                shutil.rmtree(tmp_dirpath)
+                await self.copy_file_s3_datcore(user_id, dest_uuid, source_uuid)
             elif dest_location == SIMCORE_S3_STR:
-                # source is s3, location is s3
-                to_bucket_name = self.simcore_bucket_name
-                to_object_name = dest_uuid
-                from_bucket = self.simcore_bucket_name
-                from_object_name = source_uuid
-                from_bucket_object_name = os.path.join(from_bucket, from_object_name)
-                # FIXME: This is not async!
-                self.s3_client.copy_object(to_bucket_name, to_object_name, from_bucket_object_name)
-                # update db
-                async with self.engine.acquire() as conn:
-                    fmd = FileMetaData()
-                    fmd.simcore_from_uuid(dest_uuid, self.simcore_bucket_name)
-                    fmd.user_id = user_id
-                    ins = file_meta_data.insert().values(**vars(fmd))
-                    await conn.execute(ins)
+                await self.copy_file_s3_s3(user_id, dest_uuid, source_uuid)
         elif source_location == DATCORE_STR:
             if dest_location == DATCORE_STR:
                 raise NotImplementedError("copy files from datcore 2 datcore not impl")
             if dest_location == SIMCORE_S3_STR:
-                # 2 steps: Get download link for local copy, the upload link to s3
-                # TODO: This should be a redirect stream!
-                dc_link = await self.download_link(user_id=user_id, location=source_location, file_uuid=source_uuid)
-                s3_upload_link = await self.upload_link(user_id, dest_uuid)
-                filename = source_uuid.split("/")[-1]
-                tmp_dirpath = tempfile.mkdtemp()
-                local_file_path = os.path.join(tmp_dirpath,filename)
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(dc_link) as resp:
-                        if resp.status == 200:
-                            f = await aiofiles.open(local_file_path, mode='wb')
-                            await f.write(await resp.read())
-                            await f.close()
-                            s3_upload_link = URL(s3_upload_link)
-                            async with session.put(s3_upload_link, data=Path(local_file_path).open('rb')) as resp:
-                                if resp.status > 299:
-                                    _response_text = await resp.text()
+                await self.copy_file_datcore_s3(user_id, dest_uuid, source_uuid)
 
-    async def download_link(self, user_id: str, location: str, file_uuid: str)->str:
+    async def download_link_s3(self, file_uuid: str)->str:
         link = None
-        if location == SIMCORE_S3_STR:
-            bucket_name = self.simcore_bucket_name
-            object_name = file_uuid
-            link = self.s3_client.create_presigned_get_url(bucket_name, object_name)
-        elif location == DATCORE_STR:
-            api_token, api_secret = self._get_datcore_tokens(user_id)
-            dcw = DatcoreWrapper(api_token, api_secret, self.loop, self.pool)
-            destination, filename = _parse_datcore(file_uuid)
-            link = await dcw.download_link(destination, filename)
+        bucket_name = self.simcore_bucket_name
+        object_name = file_uuid
+        link = self.s3_client.create_presigned_get_url(bucket_name, object_name)
         return link
+
+    async def download_link_datcore(self, user_id: str, file_id: str)->Dict[str,str]:
+        link = ""
+        api_token, api_secret = self._get_datcore_tokens(user_id)
+        dcw = DatcoreWrapper(api_token, api_secret, self.loop, self.pool)
+        link, filename = await dcw.download_link_by_id(file_id)
+        return link, filename
 
     async def deep_copy_project_simcore_s3(self, user_id: str, source_project, destination_project, node_mapping):
         """ Parses a given source project and copies all related files to the destination project
@@ -488,9 +556,9 @@ class DataStorageManager:
                     for _output_key, output in outputs.items():
                         if "store" in output and output["store"]==DATCORE_ID:
                             src = output["path"]
-                            dest = str(Path(dest_folder) / Path(node_id) / Path(src).name)
+                            dest = str(Path(dest_folder) / node_id)
                             logger.info("Need to copy %s to %s", src, dest)
-                            await self.copy_file(user_id, SIMCORE_S3_STR, dest, DATCORE_STR, src)
+                            await self.copy_file_datcore_s3(user_id=user_id, dest_uuid=dest, source_uuid=src, filename_missing=True)
                             # and change the dest project accordingly
                             output["store"] = 0
                             output['path'] = dest
