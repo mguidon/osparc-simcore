@@ -1448,7 +1448,7 @@ qx.Class.define("qxapp.data.Store", {
         return;
       }
       // Get list of file meta data
-      const endPoint = "/storage/locations/" + locationId + "/datasets/" + datasetId + "/files/metadata";
+      const endPoint = "/storage/locations/" + locationId + "/datasets/" + datasetId + "/metadata";
       const reqFiles = new qxapp.io.request.ApiRequest(endPoint, "GET");
 
       reqFiles.addListener("success", eFiles => {
