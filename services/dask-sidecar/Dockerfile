@@ -125,12 +125,12 @@ COPY --chown=scu:scu services/dask-sidecar/docker services/dask-sidecar/docker
 # In order to have the same healty entrypoint port
 # make sure dask worker is started as ``dask-worker --dashboard-address 8787``.
 # Otherwise the worker will take random ports to serve the /health entrypoint.
-HEALTHCHECK \
-  --interval=60s \
-  --timeout=60s \
-  --start-period=10s \
-  --retries=3 \
-  CMD ["curl", "-Lf", "http://127.0.0.1:8787/health"]
+# HEALTHCHECK \
+#   --interval=60s \
+#   --timeout=60s \
+#   --start-period=10s \
+#   --retries=3 \
+#   CMD ["curl", "-Lf", "http://127.0.0.1:8787/health"]
 
 ENTRYPOINT [ "/bin/sh", "services/dask-sidecar/docker/entrypoint.sh" ]
 CMD ["/bin/sh", "services/dask-sidecar/docker/boot.sh"]

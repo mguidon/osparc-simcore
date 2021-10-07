@@ -105,6 +105,7 @@ else
   chown -R $USERNAME:"$GROUPNAME" "${SIDECAR_INPUT_FOLDER}"
   chown -R $USERNAME:"$GROUPNAME" "${SIDECAR_OUTPUT_FOLDER}"
   chown -R $USERNAME:"$GROUPNAME" "${SIDECAR_LOG_FOLDER}"
+  chown -R $USERNAME:"$GROUPNAME" "${GATEWAY_WORK_FOLDER}"
 
 
   echo "$INFO Starting $* as WORKER ..."
@@ -113,6 +114,7 @@ else
   echo "  input dir : $(ls -al "${SIDECAR_INPUT_FOLDER}")"
   echo "  output dir : $(ls -al "${SIDECAR_OUTPUT_FOLDER}")"
   echo "  log dir : $(ls -al "${SIDECAR_LOG_FOLDER}")"
+  echo "  gateway work dir  ${GATEWAY_WORK_FOLDER} : $(ls -alR "${GATEWAY_WORK_FOLDER}")"
 fi
 
 exec gosu "$SC_USER_NAME" "$@"

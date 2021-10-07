@@ -49,7 +49,7 @@ if [ ${DASK_START_AS_SCHEDULER+x} ]; then
   fi
 else
   DASK_WORKER_VERSION=$(dask-worker --version)
-  DASK_SCHEDULER_ADDRESS="tcp://${DASK_SCHEDULER_HOST}:8786"
+  #DASK_SCHEDULER_ADDRESS="tcp://${DASK_SCHEDULER_HOST}:8786"
 
   #
   # DASK RESOURCES DEFINITION
@@ -117,13 +117,14 @@ else
       --resources "$resources"
   else
     exec dask-worker "${DASK_SCHEDULER_ADDRESS}" \
+      --dashboard-address "${DASK_DASHBOARD_ADDRESS}" \
       --local-directory /tmp/dask-sidecar \
       --preload simcore_service_dask_sidecar.tasks \
       --reconnect \
       --no-nanny \
-      --nthreads "$num_cpus" \
-      --dashboard-address 8787 \
-      --memory-limit "$ram" \
-      --resources "$resources"
+      --nthreads "${DASK_NTHREADS}" \
+      --memory-limit "${DASK_MEMORY_LIMIT}" \
+      --resources "$resources" \
+      --name "${DASK_WORKER_NAME}"
   fi
 fi
