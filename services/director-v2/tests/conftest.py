@@ -37,6 +37,7 @@ from simcore_service_director_v2.models.domains.comp_pipelines import CompPipeli
 from simcore_service_director_v2.models.domains.comp_tasks import CompTaskAtDB, Image
 from simcore_service_director_v2.utils.computations import to_node_class
 from sqlalchemy import literal_column
+from sqlalchemy.sql.expression import select
 from starlette.testclient import TestClient
 
 pytestmark = pytest.mark.asyncio
@@ -263,7 +264,7 @@ def user_db(postgres_db: sa.engine.Engine, user_id: PositiveInt) -> Dict:
     with postgres_db.connect() as con:
         # removes all users before continuing
         con.execute(users.delete())
-        result = con.execute(
+        result1 = con.execute(
             users.insert()
             .values(
                 id=user_id,
@@ -275,7 +276,8 @@ def user_db(postgres_db: sa.engine.Engine, user_id: PositiveInt) -> Dict:
             )
             .returning(literal_column("*"))
         )
-
+        # this is needed to get the primary_gid correctly
+        result = con.execute(select([users]).where(users.c.id == user_id))
         user = result.first()
 
         yield dict(user)
