@@ -17,7 +17,6 @@ from uuid import uuid4
 
 import dotenv
 import httpx
-import nest_asyncio
 import pytest
 import simcore_service_director_v2
 import sqlalchemy as sa
@@ -40,8 +39,7 @@ from simcore_service_director_v2.utils.computations import to_node_class
 from sqlalchemy import literal_column
 from starlette.testclient import TestClient
 
-nest_asyncio.apply()
-
+pytestmark = pytest.mark.asyncio
 
 pytest_plugins = [
     "pytest_simcore.docker_compose",

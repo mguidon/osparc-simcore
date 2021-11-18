@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements/_test.txt --strip-extras requirements/_test.in
 #
-aio-pika==6.8.0
+aio_pika==6.8.0
     # via
     #   -c requirements/_base.txt
     #   -r requirements/_test.in
@@ -194,8 +194,6 @@ multidict==5.1.0
     #   aiohttp
     #   async-asgi-testclient
     #   yarl
-nest-asyncio==1.5.1
-    # via -r requirements/_test.in
 packaging==20.4
     # via
     #   -c requirements/_base.txt
