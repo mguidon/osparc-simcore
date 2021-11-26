@@ -142,6 +142,7 @@ async def dask_client_from_gateway(
     assert client.dask_subsystem.client
     assert client.dask_subsystem.gateway
     assert client.dask_subsystem.gateway_cluster
+
     scheduler_infos = client.dask_subsystem.client.scheduler_info()  # type: ignore
     print(
         f"--> Connected to gateway {client.dask_subsystem.gateway=} using"
@@ -279,10 +280,17 @@ async def test_dask_cluster_through_client(
 
     future = dask_client.dask_subsystem.client.submit(test_fct_add, 2, 5)
     assert future
-    result = await future.result(timeout=2)
+    result = await future.result(timeout=10)
     assert result == 7
 
 
+@pytest.mark.parametrize(
+    "dask_client",
+    [
+        (lazy_fixture("dask_client_from_scheduler")),
+        (lazy_fixture("dask_client_from_gateway")),
+    ],
+)
 @pytest.mark.parametrize(
     "image_params",
     [
@@ -292,6 +300,7 @@ async def test_dask_cluster_through_client(
     ],
 )
 async def test_send_computation_task(
+    loop: asyncio.AbstractEventLoop,
     dask_client: DaskClient,
     user_id: UserID,
     project_id: ProjectID,
@@ -317,7 +326,7 @@ async def test_send_computation_task(
 
     job_id, future = list(dask_client._taskid_to_future_map.items())[0]
     # this waits for the computation to run
-    task_result = await future.result(timeout=2)
+    task_result = await future.result(timeout=20)
     assert isinstance(task_result, TaskOutputData)
     assert task_result["some_output_key"] == 123
     assert future.key == job_id
