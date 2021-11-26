@@ -8,13 +8,13 @@ import functools
 import json
 import random
 from dataclasses import dataclass
-from typing import Any, AsyncIterator, Dict, List
+from typing import Any, AsyncIterator, Dict
 from unittest import mock
 from uuid import uuid4
 
 import pytest
+from _dask_helpers import fake_failing_sidecar_fct, fake_sidecar_fct
 from _pytest.monkeypatch import MonkeyPatch
-from dask_task_models_library.container_tasks.docker import DockerBasicAuth
 from dask_task_models_library.container_tasks.events import TaskStateEvent
 from dask_task_models_library.container_tasks.io import (
     TaskInputData,
@@ -101,16 +101,6 @@ async def dask_client(
     yield client
 
     await client.delete()
-
-
-async def test_local_dask_cluster_through_client(dask_client: DaskClient):
-    def test_fct_add(x: int, y: int) -> int:
-        return x + y
-
-    future = dask_client.dask_subsystem.client.submit(test_fct_add, 2, 5)
-    assert future
-    result = await future.result(timeout=2)
-    assert result == 7
 
 
 @pytest.fixture
@@ -213,43 +203,14 @@ async def mocked_user_completed_cb(mocker: MockerFixture) -> mock.AsyncMock:
     return mocker.AsyncMock()
 
 
-def _fake_sidecar_fct(
-    docker_auth: DockerBasicAuth,
-    service_key: str,
-    service_version: str,
-    input_data: TaskInputData,
-    output_data_keys: TaskOutputDataSchema,
-    log_file_url: AnyUrl,
-    command: List[str],
-    expected_annotations: Dict[str, Any],
-) -> TaskOutputData:
-    import time
+async def test_dask_cluster_through_client(dask_client: DaskClient):
+    def test_fct_add(x: int, y: int) -> int:
+        return x + y
 
-    from dask.distributed import get_worker
-
-    # sleep a bit in case someone is aborting us
-    time.sleep(1)
-
-    # get the task data
-    worker = get_worker()
-    task = worker.tasks.get(worker.get_current_task())
-    assert task is not None
-    assert task.annotations == expected_annotations
-
-    return TaskOutputData.parse_obj({"some_output_key": 123})
-
-
-def _fake_failing_sidecar_fct(
-    docker_auth: DockerBasicAuth,
-    service_key: str,
-    service_version: str,
-    input_data: TaskInputData,
-    output_data_keys: TaskOutputDataSchema,
-    log_file_url: AnyUrl,
-    command: List[str],
-) -> TaskOutputData:
-
-    raise ValueError("sadly we are failing to execute anything cause we are dumb...")
+    future = dask_client.dask_subsystem.client.submit(test_fct_add, 2, 5)
+    assert future
+    result = await future.result(timeout=2)
+    assert result == 7
 
 
 @pytest.mark.parametrize(
@@ -277,7 +238,7 @@ async def test_send_computation_task(
         tasks=image_params.fake_task,
         callback=mocked_user_completed_cb,
         remote_fct=functools.partial(
-            _fake_sidecar_fct, expected_annotations=image_params.expected_annotations
+            fake_sidecar_fct, expected_annotations=image_params.expected_annotations
         ),
     )
     assert (
@@ -328,7 +289,7 @@ async def test_abort_send_computation_task(
         tasks=image_params.fake_task,
         callback=mocked_user_completed_cb,
         remote_fct=functools.partial(
-            _fake_sidecar_fct, expected_annotations=image_params.expected_annotations
+            fake_sidecar_fct, expected_annotations=image_params.expected_annotations
         ),
     )
     assert (
@@ -369,7 +330,7 @@ async def test_failed_task_returns_exceptions(
         cluster_id=cluster_id,
         tasks=gpu_image.fake_task,
         callback=mocked_user_completed_cb,
-        remote_fct=_fake_failing_sidecar_fct,
+        remote_fct=fake_failing_sidecar_fct,
     )
     assert (
         len(dask_client._taskid_to_future_map) == 1
