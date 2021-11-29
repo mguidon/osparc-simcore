@@ -30,6 +30,7 @@ import aiopg.sa
 import httpx
 import pytest
 import sqlalchemy as sa
+from _pytest.monkeypatch import MonkeyPatch
 from aiodocker.containers import DockerContainer
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
@@ -40,6 +41,7 @@ from models_library.settings.rabbit import RabbitConfig
 from models_library.settings.redis import RedisConfig
 from py._path.local import LocalPath
 from pytest_mock.plugin import MockerFixture
+from pytest_simcore.helpers.utils_docker import get_ip
 from shared_comp_utils import (
     assert_computation_task_out_obj,
     assert_pipeline_status,
@@ -75,26 +77,27 @@ from utils import (
 from yarl import URL
 
 pytest_simcore_core_services_selection = [
-    "postgres",
-    "redis",
-    "rabbit",
-    "storage",
     "catalog",
-    "director",
     "dask-scheduler",
     "dask-sidecar",
+    "director",
+    "migration",
+    "postgres",
+    "rabbit",
+    "redis",
+    "storage",
 ]
 
 pytest_simcore_ops_services_selection = [
-    "minio",
     "adminer",
+    "minio",
 ]
 
 
 ServicesNodeUUIDs = namedtuple("ServicesNodeUUIDs", "sleeper, dy, dy_compose_spec")
 InputsOutputs = namedtuple("InputsOutputs", "inputs, outputs")
 
-DY_SERVICES_STATE_PATH: Path = Path("/dy-volumes/workdir_generated-data")
+DY_SERVICES_STATE_PATH: Path = Path("/dy-volumes/workdir/generated-data")
 TIMEOUT_DETECT_DYNAMIC_SERVICES_STOPPED = 60
 TIMEOUT_OUTPUTS_UPLOAD_FINISH_DETECTED = 60
 POSSIBLE_ISSUE_WORKAROUND = 10
@@ -237,7 +240,7 @@ async def db_manager(postgres_dsn: Dict[str, str]) -> AsyncIterable[DBManager]:
 
 @pytest.fixture
 async def fast_api_app(
-    minimal_configuration: None, network_name: str, monkeypatch
+    minimal_configuration: None, network_name: str, monkeypatch: MonkeyPatch
 ) -> FastAPI:
     # Works as below line in docker.compose.yml
     # ${DOCKER_REGISTRY:-itisfoundation}/dynamic-sidecar:${DOCKER_IMAGE_TAG:-latest}
@@ -261,6 +264,10 @@ async def fast_api_app(
     monkeypatch.setenv("DIRECTOR_V2_CELERY_SCHEDULER_ENABLED", "false")
     monkeypatch.setenv("DYNAMIC_SIDECAR_TRAEFIK_ACCESS_LOG", "true")
     monkeypatch.setenv("DYNAMIC_SIDECAR_TRAEFIK_LOGLEVEL", "debug")
+    # patch host for dynamic-sidecar, not reachable via localhost
+    # the dynamic-sidecar (running inside a container) will use
+    # this address to reach the rabbit service
+    monkeypatch.setenv("RABBIT_HOST", f"{get_ip()}")
 
     settings = AppSettings.create_from_envs()
 
@@ -832,7 +839,7 @@ async def test_nodeports_integration(
     )
 
     # wait for the computation to start
-    assert_pipeline_status(
+    await assert_pipeline_status(
         client,
         task_out.url,
         user_db["id"],
@@ -841,7 +848,7 @@ async def test_nodeports_integration(
     )
 
     # wait for the computation to finish (either by failing, success or abort)
-    task_out = assert_pipeline_status(
+    task_out = await assert_pipeline_status(
         client, task_out.url, user_db["id"], current_study.uuid
     )
 

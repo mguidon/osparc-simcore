@@ -33,13 +33,14 @@ aiohttp==3.7.4.post0
     #   -c requirements/../../../requirements/constraints.txt
     #   -r requirements/../../../packages/simcore-sdk/requirements/_base.in
     #   aiodocker
+    #   dask-gateway
 aiopg==1.2.1
     # via
     #   -r requirements/../../../packages/simcore-sdk/requirements/_base.in
     #   -r requirements/_base.in
 aiormq==3.3.1
     # via aio-pika
-alembic==1.7.4
+alembic==1.7.5
     # via
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/postgres-database/requirements/_base.txt
     #   -r requirements/../../../packages/postgres-database/requirements/_base.in
@@ -104,13 +105,17 @@ dask==2021.10.0
     # via
     #   -r requirements/../../../packages/dask-task-models-library/requirements/_base.in
     #   -r requirements/../../../services/dask-sidecar/requirements/_dask-distributed.txt
+    #   dask-gateway
     #   distributed
+dask-gateway==0.9.0
+    # via -r requirements/_base.in
 decorator==4.4.2
     # via networkx
 distributed==2021.10.0
     # via
     #   -r requirements/../../../services/dask-sidecar/requirements/_dask-distributed.txt
     #   dask
+    #   dask-gateway
 dnspython==2.1.0
     # via email-validator
 docker==5.0.2
@@ -169,11 +174,11 @@ idna==2.10
     #   requests
     #   rfc3986
     #   yarl
-importlib-metadata==4.8.1
+importlib-metadata==4.8.2
     # via
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/postgres-database/requirements/_base.txt
     #   alembic
-importlib-resources==5.3.0 ; python_version < "3.9"
+importlib-resources==5.4.0 ; python_version < "3.9"
     # via
     #   -c requirements/../../../packages/dask-task-models-library/requirements/../../../packages/models-library/requirements/../../../requirements/constraints.txt
     #   -c requirements/../../../packages/dask-task-models-library/requirements/../../../requirements/constraints.txt
@@ -216,7 +221,7 @@ locket==0.2.1
     # via
     #   -r requirements/../../../services/dask-sidecar/requirements/_dask-distributed.txt
     #   partd
-mako==1.1.5
+mako==1.1.6
     # via
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/postgres-database/requirements/_base.txt
     #   alembic
@@ -230,7 +235,7 @@ msgpack==1.0.2
     # via
     #   -r requirements/../../../services/dask-sidecar/requirements/_dask-distributed.txt
     #   distributed
-multidict==5.1.0
+multidict==5.2.0
     # via
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/postgres-database/requirements/_base.txt
     #   aiohttp
@@ -268,7 +273,7 @@ psutil==5.8.0
     # via
     #   -r requirements/../../../services/dask-sidecar/requirements/_dask-distributed.txt
     #   distributed
-psycopg2-binary==2.9.1
+psycopg2-binary==2.9.2
     # via
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/postgres-database/requirements/_base.txt
     #   -r requirements/../../../packages/simcore-sdk/requirements/_base.in
@@ -324,11 +329,14 @@ pyyaml==5.4.1
     #   -c requirements/../../../packages/postgres-database/requirements/../../../requirements/constraints.txt
     #   -c requirements/../../../packages/service-library/requirements/../../../requirements/constraints.txt
     #   -c requirements/../../../packages/service-library/requirements/./../../../requirements/constraints.txt
+    #   -c requirements/../../../packages/service-library/requirements/././constraints.txt
     #   -c requirements/../../../packages/service-library/requirements/./_base.in
+    #   -c requirements/../../../packages/service-library/requirements/./constraints.txt
     #   -c requirements/../../../packages/settings-library/requirements/../../../requirements/constraints.txt
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/models-library/requirements/../../../requirements/constraints.txt
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/postgres-database/requirements/../../../requirements/constraints.txt
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/service-library/requirements/../../../requirements/constraints.txt
+    #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/service-library/requirements/./constraints.txt
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../requirements/constraints.txt
     #   -c requirements/../../../requirements/constraints.txt
     #   -r requirements/../../../packages/service-library/requirements/_base.in
@@ -483,7 +491,7 @@ websocket-client==0.59.0
     #   docker
 websockets==8.1
     # via uvicorn
-yarl==1.6.3
+yarl==1.7.2
     # via
     #   -c requirements/../../../packages/simcore-sdk/requirements/../../../packages/postgres-database/requirements/_base.txt
     #   -r requirements/../../../packages/postgres-database/requirements/_base.in

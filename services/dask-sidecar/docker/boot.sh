@@ -116,7 +116,7 @@ else
       --dashboard-address 8787 \
       --memory-limit "$ram" \
       --resources "$resources" \
-      --name "$(hostname)"
+      --name "dask-sidecar_$(hostname)_$(date +'%Y-%m-%d_%T')_$$"
   else
     if [ ${DASK_START_AS_GATEWAY_WORKER+x} ]; then
       echo "$INFO" "Starting as a gateway-worker"
@@ -132,17 +132,17 @@ else
         --resources "$resources" \
         --name "${DASK_WORKER_NAME}"
     else
-      exec dask-worker "${DASK_SCHEDULER_ADDRESS}" \
-        --local-directory /tmp/dask-sidecar \
-        --preload simcore_service_dask_sidecar.tasks \
-        --reconnect \
-        --no-nanny \
-        --nprocs 1 \
-        --nthreads "$num_cpus" \
-        --dashboard-address 8787 \
-        --memory-limit "$ram" \
-        --resources "$resources" \
-        --name "$(hostname)"
+        exec dask-worker "${DASK_SCHEDULER_ADDRESS}" \
+      --local-directory /tmp/dask-sidecar \
+      --preload simcore_service_dask_sidecar.tasks \
+      --reconnect \
+      --no-nanny \
+      --nprocs 1 \
+      --nthreads "$num_cpus" \
+      --dashboard-address 8787 \
+      --memory-limit "$ram" \
+      --resources "$resources" \
+      --name "dask-sidecar_$(hostname)_$(date +'%Y-%m-%d_%T')_$$"
     fi
   fi
 fi

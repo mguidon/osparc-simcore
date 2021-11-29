@@ -4,27 +4,27 @@
 # pylint:disable=protected-access
 # pylint:disable=too-many-arguments
 
+import asyncio
 import functools
 import json
 import random
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, AsyncIterator, Dict
 from unittest import mock
 from uuid import uuid4
 
 import pytest
+from _dask_helpers import DaskGatewayServer, fake_failing_sidecar_fct, fake_sidecar_fct
 from _pytest.monkeypatch import MonkeyPatch
-from dask_task_models_library.container_tasks.docker import DockerBasicAuth
 from dask_task_models_library.container_tasks.events import TaskStateEvent
 from dask_task_models_library.container_tasks.io import (
     TaskInputData,
     TaskOutputData,
     TaskOutputDataSchema,
 )
-from distributed import Client
-from distributed.deploy.local import LocalCluster
 from distributed.deploy.spec import SpecCluster
 from fastapi.applications import FastAPI
+from models_library.clusters import NoAuthentication, SimpleAuthentication
 from models_library.projects import ProjectID
 from models_library.projects_nodes_io import NodeID
 from models_library.projects_state import RunningState
@@ -32,14 +32,11 @@ from pydantic import AnyUrl
 from pydantic.tools import parse_obj_as
 from pytest_lazyfixture import lazy_fixture
 from pytest_mock.plugin import MockerFixture
-from simcore_service_director_v2.core.application import init_app
 from simcore_service_director_v2.core.errors import (
     ComputationalBackendNotConnectedError,
-    ConfigurationError,
     InsuficientComputationalResourcesError,
     MissingComputationalResourcesError,
 )
-from simcore_service_director_v2.core.settings import AppSettings
 from simcore_service_director_v2.models.domains.comp_tasks import Image
 from simcore_service_director_v2.models.schemas.constants import ClusterID, UserID
 from simcore_service_director_v2.models.schemas.services import NodeRequirements
@@ -47,22 +44,25 @@ from simcore_service_director_v2.modules.dask_client import (
     CLUSTER_RESOURCE_MOCK_USAGE,
     DaskClient,
 )
-from starlette.testclient import TestClient
-from tenacity import retry
+from tenacity._asyncio import AsyncRetrying
 from tenacity.retry import retry_if_exception_type
 from tenacity.stop import stop_after_delay
 from tenacity.wait import wait_random
-from yarl import URL
 
 
-@retry(
-    stop=stop_after_delay(10),
-    wait=wait_random(0, 1),
-    retry=retry_if_exception_type(AssertionError),
-    reraise=True,
-)
 async def _wait_for_call(mocked_fct):
-    mocked_fct.assert_called_once()
+    async for attempt in AsyncRetrying(
+        stop=stop_after_delay(10),
+        wait=wait_random(0, 1),
+        retry=retry_if_exception_type(AssertionError),
+        reraise=True,
+    ):
+        with attempt:
+            print(
+                f"waiting for call in mocked fct {mocked_fct}, "
+                f"Attempt={attempt.retry_state.attempt_number}"
+            )
+            mocked_fct.assert_called_once()
 
 
 @pytest.fixture
@@ -86,46 +86,72 @@ def minimal_dask_config(
     monkeypatch.setenv("SC_BOOT_MODE", "production")
 
 
-def test_dask_client_missing_raises_configuration_error(
-    minimal_dask_config: None, monkeypatch: MonkeyPatch
-):
-    monkeypatch.setenv("DIRECTOR_V2_DASK_CLIENT_ENABLED", "0")
-    settings = AppSettings.create_from_envs()
-    app = init_app(settings)
-
-    with TestClient(app, raise_server_exceptions=True) as client:
-        with pytest.raises(ConfigurationError):
-            DaskClient.instance(client.app)
-
-
 @pytest.fixture
-def dask_client(
+async def dask_client_from_scheduler(
     minimal_dask_config: None,
     dask_spec_local_cluster: SpecCluster,
     minimal_app: FastAPI,
-) -> DaskClient:
-    client = DaskClient.instance(minimal_app)
+) -> AsyncIterator[DaskClient]:
+    client = await DaskClient.create(
+        app=minimal_app,
+        settings=minimal_app.state.settings.DASK_SCHEDULER,
+        endpoint=parse_obj_as(AnyUrl, dask_spec_local_cluster.scheduler_address),
+        authentication=NoAuthentication(),
+    )
     assert client
-    return client
+    assert client.app == minimal_app
+    assert client.settings == minimal_app.state.settings.DASK_SCHEDULER
+    assert client.cancellation_dask_pub
+    assert not client._taskid_to_future_map
+    assert not client._subscribed_tasks
+
+    assert client.dask_subsystem.client
+    assert not client.dask_subsystem.gateway
+    assert not client.dask_subsystem.gateway_cluster
+    scheduler_infos = client.dask_subsystem.client.scheduler_info()  # type: ignore
+    print(
+        f"--> Connected to scheduler via client {client=} to scheduler {scheduler_infos=}"
+    )
+    yield client
+
+    await client.delete()
+    print(f"<-- Disconnected from scheduler via client {client=}")
 
 
-async def test_dask_cluster():
-    async with LocalCluster(
-        n_workers=2, threads_per_worker=1, asynchronous=True
-    ) as cluster:
-        scheduler_address = URL(cluster.scheduler_address)
-        async with Client(cluster, asynchronous=True) as client:
-            assert client.status == "running"
+@pytest.fixture
+async def dask_client_from_gateway(
+    minimal_dask_config: None,
+    local_dask_gateway_server: DaskGatewayServer,
+    minimal_app: FastAPI,
+) -> AsyncIterator[DaskClient]:
+    client = await DaskClient.create(
+        app=minimal_app,
+        settings=minimal_app.state.settings.DASK_SCHEDULER,
+        endpoint=parse_obj_as(AnyUrl, local_dask_gateway_server.address),
+        authentication=SimpleAuthentication(
+            username="pytest_user", password=local_dask_gateway_server.password
+        ),
+    )
+    assert client
+    assert client.app == minimal_app
+    assert client.settings == minimal_app.state.settings.DASK_SCHEDULER
+    assert client.cancellation_dask_pub
+    assert not client._taskid_to_future_map
+    assert not client._subscribed_tasks
 
+    assert client.dask_subsystem.client
+    assert client.dask_subsystem.gateway
+    assert client.dask_subsystem.gateway_cluster
 
-async def test_local_dask_cluster_through_client(dask_client: DaskClient):
-    def test_fct_add(x: int, y: int) -> int:
-        return x + y
+    scheduler_infos = client.dask_subsystem.client.scheduler_info()  # type: ignore
+    print(
+        f"--> Connected to gateway {client.dask_subsystem.gateway=} using"
+        f" cluster {client.dask_subsystem.gateway_cluster=} via client {client=} onto scheduler {scheduler_infos=}"
+    )
+    yield client
 
-    future = dask_client.client.submit(test_fct_add, 2, 5)
-    assert future
-    result = await future.result(timeout=2)
-    assert result == 7
+    await client.delete()
+    print(f"<-- Disconnected from gateway via client {client=}")
 
 
 @pytest.fixture
@@ -224,49 +250,47 @@ def mocked_node_ports(mocker: MockerFixture):
 
 
 @pytest.fixture
-def mocked_user_completed_cb(mocker: MockerFixture) -> mock.Mock:
-    return mocker.Mock()
+async def mocked_user_completed_cb(mocker: MockerFixture) -> mock.AsyncMock:
+    return mocker.AsyncMock()
 
 
-def _fake_sidecar_fct(
-    docker_auth: DockerBasicAuth,
-    service_key: str,
-    service_version: str,
-    input_data: TaskInputData,
-    output_data_keys: TaskOutputDataSchema,
-    log_file_url: AnyUrl,
-    command: List[str],
-    expected_annotations: Dict[str, Any],
-) -> TaskOutputData:
-    import time
-
-    from dask.distributed import get_worker
-
-    # sleep a bit in case someone is aborting us
-    time.sleep(1)
-
-    # get the task data
-    worker = get_worker()
-    task = worker.tasks.get(worker.get_current_task())
-    assert task is not None
-    assert task.annotations == expected_annotations
-
-    return TaskOutputData.parse_obj({"some_output_key": 123})
+@pytest.mark.parametrize(
+    "dask_client",
+    [
+        (lazy_fixture("dask_client_from_scheduler")),
+        (lazy_fixture("dask_client_from_gateway")),
+    ],
+)
+async def test_dask_client(loop: asyncio.AbstractEventLoop, dask_client: DaskClient):
+    assert dask_client
 
 
-def _fake_failing_sidecar_fct(
-    docker_auth: DockerBasicAuth,
-    service_key: str,
-    service_version: str,
-    input_data: TaskInputData,
-    output_data_keys: TaskOutputDataSchema,
-    log_file_url: AnyUrl,
-    command: List[str],
-) -> TaskOutputData:
+@pytest.mark.parametrize(
+    "dask_client",
+    [
+        (lazy_fixture("dask_client_from_scheduler")),
+        (lazy_fixture("dask_client_from_gateway")),
+    ],
+)
+async def test_dask_cluster_through_client(
+    loop: asyncio.AbstractEventLoop, dask_client: DaskClient
+):
+    def test_fct_add(x: int, y: int) -> int:
+        return x + y
 
-    raise ValueError("sadly we are failing to execute anything cause we are dumb...")
+    future = dask_client.dask_subsystem.client.submit(test_fct_add, 2, 5)
+    assert future
+    result = await future.result(timeout=10)
+    assert result == 7
 
 
+@pytest.mark.parametrize(
+    "dask_client",
+    [
+        (lazy_fixture("dask_client_from_scheduler")),
+        (lazy_fixture("dask_client_from_gateway")),
+    ],
+)
 @pytest.mark.parametrize(
     "image_params",
     [
@@ -276,13 +300,14 @@ def _fake_failing_sidecar_fct(
     ],
 )
 async def test_send_computation_task(
+    loop: asyncio.AbstractEventLoop,
     dask_client: DaskClient,
     user_id: UserID,
     project_id: ProjectID,
     cluster_id: ClusterID,
     image_params: ImageParams,
     mocked_node_ports: None,
-    mocked_user_completed_cb: mock.Mock,
+    mocked_user_completed_cb: mock.AsyncMock,
 ):
     # NOTE: We pass another fct so it can run in our localy created dask cluster
     await dask_client.send_computation_tasks(
@@ -292,7 +317,7 @@ async def test_send_computation_task(
         tasks=image_params.fake_task,
         callback=mocked_user_completed_cb,
         remote_fct=functools.partial(
-            _fake_sidecar_fct, expected_annotations=image_params.expected_annotations
+            fake_sidecar_fct, expected_annotations=image_params.expected_annotations
         ),
     )
     assert (
@@ -301,7 +326,8 @@ async def test_send_computation_task(
 
     job_id, future = list(dask_client._taskid_to_future_map.items())[0]
     # this waits for the computation to run
-    task_result = await future.result(timeout=2)
+    task_result = await future.result(timeout=20)
+    assert isinstance(task_result, TaskOutputData)
     assert task_result["some_output_key"] == 123
     assert future.key == job_id
     await _wait_for_call(mocked_user_completed_cb)
@@ -319,6 +345,13 @@ async def test_send_computation_task(
 
 
 @pytest.mark.parametrize(
+    "dask_client",
+    [
+        (lazy_fixture("dask_client_from_scheduler")),
+        (lazy_fixture("dask_client_from_gateway")),
+    ],
+)
+@pytest.mark.parametrize(
     "image_params",
     [
         (lazy_fixture("cpu_image")),
@@ -333,7 +366,7 @@ async def test_abort_send_computation_task(
     cluster_id: ClusterID,
     image_params: ImageParams,
     mocked_node_ports: None,
-    mocked_user_completed_cb: mock.Mock,
+    mocked_user_completed_cb: mock.AsyncMock,
 ):
     await dask_client.send_computation_tasks(
         user_id=user_id,
@@ -342,7 +375,7 @@ async def test_abort_send_computation_task(
         tasks=image_params.fake_task,
         callback=mocked_user_completed_cb,
         remote_fct=functools.partial(
-            _fake_sidecar_fct, expected_annotations=image_params.expected_annotations
+            fake_sidecar_fct, expected_annotations=image_params.expected_annotations
         ),
     )
     assert (
@@ -368,6 +401,13 @@ async def test_abort_send_computation_task(
     ), "the list of futures was not cleaned correctly"
 
 
+@pytest.mark.parametrize(
+    "dask_client",
+    [
+        (lazy_fixture("dask_client_from_scheduler")),
+        (lazy_fixture("dask_client_from_gateway")),
+    ],
+)
 async def test_failed_task_returns_exceptions(
     dask_client: DaskClient,
     user_id: UserID,
@@ -375,7 +415,7 @@ async def test_failed_task_returns_exceptions(
     cluster_id: ClusterID,
     gpu_image: ImageParams,
     mocked_node_ports: None,
-    mocked_user_completed_cb: mock.Mock,
+    mocked_user_completed_cb: mock.AsyncMock,
 ):
     await dask_client.send_computation_tasks(
         user_id=user_id,
@@ -383,7 +423,7 @@ async def test_failed_task_returns_exceptions(
         cluster_id=cluster_id,
         tasks=gpu_image.fake_task,
         callback=mocked_user_completed_cb,
-        remote_fct=_fake_failing_sidecar_fct,
+        remote_fct=fake_failing_sidecar_fct,
     )
     assert (
         len(dask_client._taskid_to_future_map) == 1
@@ -405,6 +445,13 @@ async def test_failed_task_returns_exceptions(
 
 
 @pytest.mark.parametrize(
+    "dask_client",
+    [
+        (lazy_fixture("dask_client_from_scheduler")),
+        (lazy_fixture("dask_client_from_gateway")),
+    ],
+)
+@pytest.mark.parametrize(
     "image_params",
     [
         (lazy_fixture("cpu_image")),
@@ -419,7 +466,7 @@ async def test_invalid_cluster_send_computation_task(
     cluster_id: ClusterID,
     image_params: ImageParams,
     mocked_node_ports: None,
-    mocked_user_completed_cb: mock.Mock,
+    mocked_user_completed_cb: mock.AsyncMock,
 ):
     with pytest.raises(MissingComputationalResourcesError):
         await dask_client.send_computation_tasks(
@@ -436,6 +483,13 @@ async def test_invalid_cluster_send_computation_task(
     mocked_user_completed_cb.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "dask_client",
+    [
+        (lazy_fixture("dask_client_from_scheduler")),
+        (lazy_fixture("dask_client_from_gateway")),
+    ],
+)
 async def test_too_many_resource_send_computation_task(
     dask_client: DaskClient,
     user_id: UserID,
@@ -443,7 +497,7 @@ async def test_too_many_resource_send_computation_task(
     node_id: NodeID,
     cluster_id: ClusterID,
     mocked_node_ports: None,
-    mocked_user_completed_cb: mock.Mock,
+    mocked_user_completed_cb: mock.AsyncMock,
 ):
     # create an image that needs a huge amount of CPU
     image = Image(
@@ -469,6 +523,13 @@ async def test_too_many_resource_send_computation_task(
     mocked_user_completed_cb.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "dask_client",
+    [
+        (lazy_fixture("dask_client_from_scheduler")),
+        (lazy_fixture("dask_client_from_gateway")),
+    ],
+)
 async def test_disconnected_backend_send_computation_task(
     dask_spec_local_cluster: SpecCluster,
     dask_client: DaskClient,
@@ -477,7 +538,7 @@ async def test_disconnected_backend_send_computation_task(
     cluster_id: ClusterID,
     cpu_image: ImageParams,
     mocked_node_ports: None,
-    mocked_user_completed_cb: mock.Mock,
+    mocked_user_completed_cb: mock.AsyncMock,
 ):
     # DISCONNECT THE CLUSTER
     await dask_spec_local_cluster.close()  # type: ignore

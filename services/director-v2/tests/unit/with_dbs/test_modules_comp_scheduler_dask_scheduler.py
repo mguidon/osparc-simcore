@@ -17,7 +17,7 @@ from _helpers import assert_comp_tasks_state  # type: ignore
 from _helpers import manually_run_comp_scheduler  # type: ignore
 from _helpers import set_comp_task_state  # type: ignore
 from _pytest.monkeypatch import MonkeyPatch
-from dask.distributed import LocalCluster, SpecCluster
+from dask.distributed import SpecCluster
 from dask_task_models_library.container_tasks.events import TaskStateEvent
 from dask_task_models_library.container_tasks.io import TaskOutputData
 from fastapi.applications import FastAPI
@@ -123,7 +123,7 @@ def mocked_scheduler_task(monkeypatch: MonkeyPatch) -> None:
 async def test_scheduler_gracefully_starts_and_stops(
     minimal_dask_scheduler_config: None,
     aiopg_engine: Iterator[aiopg.sa.engine.Engine],  # type: ignore
-    dask_local_cluster: LocalCluster,
+    dask_spec_local_cluster: SpecCluster,
     minimal_app: FastAPI,
 ):
     # check it started correctly
@@ -140,7 +140,7 @@ async def test_scheduler_gracefully_starts_and_stops(
 def test_scheduler_raises_exception_for_missing_dependencies(
     minimal_dask_scheduler_config: None,
     aiopg_engine: Iterator[aiopg.sa.engine.Engine],  # type: ignore
-    dask_local_cluster: LocalCluster,
+    dask_spec_local_cluster: SpecCluster,
     monkeypatch: MonkeyPatch,
     missing_dependency: str,
 ):
@@ -473,9 +473,10 @@ async def test_handling_of_disconnected_dask_scheduler(
             msg="faked disconnected backend"
         ),
     )
-    mocked_reconnect_client_fct = mocker.patch(
-        "simcore_service_director_v2.modules.comp_scheduler.dask_scheduler.DaskClient.reconnect_client"
-    )
+    # mocked_delete_client_fct = mocker.patch(
+    #     "simcore_service_director_v2.modules.comp_scheduler.dask_scheduler.DaskClient.delete",
+    #     autospec=True,
+    # )
 
     # check the pipeline is correctly added to the scheduled pipelines
     await scheduler.run_new_pipeline(
@@ -498,8 +499,11 @@ async def test_handling_of_disconnected_dask_scheduler(
         exp_state=RunningState.PUBLISHED,
     )
     # the exception risen should trigger calls to reconnect the client, we do it manually here
+    old_dask_client = cast(DaskScheduler, scheduler).dask_client
     await scheduler.reconnect_backend()
-    mocked_reconnect_client_fct.assert_called()
+    # this will delete and re-create the dask client
+    new_dask_client = cast(DaskScheduler, scheduler).dask_client
+    assert old_dask_client is not new_dask_client
 
     # now try to abort the tasks since we are wondering what is happening, this should auto-trigger the scheduler
     await scheduler.stop_pipeline(
