@@ -51,7 +51,7 @@ minio==7.0.4
 
 
 # Keeps all docker compose to the same version. TODO: remove when all synced
-docker-compose==1.29.1
+docker-compose==1.29.2
 
 
 # constraint since https://github.com/MagicStack/uvloop/releases/tag/v0.15.0: drops support for 3.5/3.6  Feb.2021
