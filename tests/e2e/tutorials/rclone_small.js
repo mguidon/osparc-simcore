@@ -22,14 +22,14 @@ async function runTutorial() {
   let studyId;
   try {
     await tutorial.start();
-    const studyData = await tutorial.openTemplate(1000);
+    const studyData = await tutorial.openTemplate(1000, 120000); // timeout after clicking on the template to take the screenshot at the correct point in time
     studyId = studyData["data"]["uuid"];
 
     const workbenchData = utils.extractWorkbenchData(studyData["data"]);
     await tutorial.waitForServices(
       workbenchData["studyId"],
       [workbenchData["nodeIds"][0], workbenchData["nodeIds"][1], workbenchData["nodeIds"][2], workbenchData["nodeIds"][3], workbenchData["nodeIds"][4]],
-      startTimeout,
+      startTimeout, // for state to be ready (state and input/output pulled)
       false
     );
 
@@ -38,7 +38,7 @@ async function runTutorial() {
     for (let j = 0; j < 5; j++) {
       // open JLab
       await tutorial.openNode(j);
-      await tutorial.waitFor(12000);
+      await tutorial.waitFor(12000); // waiting for jupyter lab to show up with the frontend
 
       // Run the jlab nbook
       const jLabIframe = await tutorial.getIframe(workbenchData["nodeIds"][j]);
@@ -51,7 +51,7 @@ async function runTutorial() {
       });
       await tutorial.takeScreenshot("after_nb_selection");
 
-      await tutorial.waitFor(5000);
+      await tutorial.waitFor(5000); // wait for notebook to be loaded
       // click Run Menu
       const mainRunMenuBtnSelector = '#jp-MainMenu > ul > li:nth-child(4)'; // select the Run Menu
       await utils.waitAndClick(jLabIframe, mainRunMenuBtnSelector)
@@ -64,8 +64,8 @@ async function runTutorial() {
 
       await tutorial.takeScreenshot("after_run_all_menu");
 
-      await tutorial.waitFor(10000); // we are creating 100 x 1 KB files with 75 % probability
     }
+    await tutorial.waitFor(10000); // we are creating 100 x 1 KB files with 75 % probability
   }
   catch (err) {
     await tutorial.setTutorialFailed(true);

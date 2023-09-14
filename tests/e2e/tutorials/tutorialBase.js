@@ -285,16 +285,20 @@ class TutorialBase {
     return resp;
   }
 
-  async openTemplate(waitFor = 1000) {
+  async openTemplate(waitFor = 1000, cloneAndOpenTimeout = 20000) {
     await this.takeScreenshot("dashboardOpenFirstTemplate_before");
     this.__responsesQueue.addResponseListener("projects?from_study=");
     this.__responsesQueue.addResponseListener(":open");
     let resp = null;
     try {
+      console.log("Template copy initiate")
       const templateFound = await auto.dashboardOpenFirstTemplate(this.__page, this.__templateName);
       assert(templateFound, "Expected template, got nothing. TIP: did you inject templates in database??")
-      await this.__responsesQueue.waitUntilResponse("projects?from_study=");
-      resp = await this.__responsesQueue.waitUntilResponse(":open");
+      await this.__responsesQueue.waitUntilResponse("projects?from_study="); // create copy but dont wait
+      console.log("Template copy done")
+      console.log("Open the study")
+    
+      resp = await this.__responsesQueue.waitUntilResponse(":open", cloneAndOpenTimeout); // open and wait (including time to clone)
       const studyId = resp["data"]["uuid"];
       console.log("Study ID:", studyId);
     }
@@ -568,7 +572,7 @@ class TutorialBase {
       console.error("Error: Failed going to dashboard", err);
       throw (err);
     }
-    await this.waitFor(5000, 'Going back to Dashboard');
+    await this.waitFor(5000, 'Going back to Dashboard'); 
     await this.takeScreenshot("toDashboard_after");
   }
 
