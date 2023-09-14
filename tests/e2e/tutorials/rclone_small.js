@@ -22,7 +22,7 @@ async function runTutorial() {
   let studyId;
   try {
     await tutorial.start();
-    const studyData = await tutorial.openTemplate(1000, 120000); // timeout after clicking on the template to take the screenshot at the correct point in time
+    const studyData = await tutorial.openTemplate(1000, 240000); // timeout after clicking on the template to take the screenshot at the correct point in time
     studyId = studyData["data"]["uuid"];
 
     const workbenchData = utils.extractWorkbenchData(studyData["data"]);

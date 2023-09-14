@@ -22,7 +22,7 @@ async function runTutorial() {
   let studyId;
   try {
     await tutorial.start();
-    const studyData = await tutorial.openTemplate(1000);
+    const studyData = await tutorial.openTemplate(1000, 1200000);
     studyId = studyData["data"]["uuid"];
 
     const workbenchData = utils.extractWorkbenchData(studyData["data"]);
@@ -63,10 +63,8 @@ async function runTutorial() {
       await utils.waitAndClick(jLabIframe, mainRunAllBtnSelector)
 
       await tutorial.takeScreenshot("after_run_all_menu");
-
-     
-      await tutorial.waitFor(60000); // we are creating 12 x 1 GB files with 75 % probability
     }
+    await tutorial.waitFor(300000); // we are creating 12 x 1 GB files with 75 % probability
   }
   catch (err) {
     await tutorial.setTutorialFailed(true);
