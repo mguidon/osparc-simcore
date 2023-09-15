@@ -22,7 +22,7 @@ async function runTutorial() {
   let studyId;
   try {
     await tutorial.start();
-    const studyData = await tutorial.openTemplate(1000, 1200000);
+    const studyData = await tutorial.openTemplate(1000, 1800000);
     studyId = studyData["data"]["uuid"];
 
     const workbenchData = utils.extractWorkbenchData(studyData["data"]);
@@ -44,7 +44,7 @@ async function runTutorial() {
       const jLabIframe = await tutorial.getIframe(workbenchData["nodeIds"][j]);
 
       await tutorial.takeScreenshot("before_nb_selection");
-      const input2outputFileSelector = '[title~="TouchRandomFileLarge.ipynb"]';
+      const input2outputFileSelector = '[title~="TouchRandomLargeFile.ipynb"]';
       await jLabIframe.waitForSelector(input2outputFileSelector);
       await jLabIframe.click(input2outputFileSelector, {
         clickCount: 2

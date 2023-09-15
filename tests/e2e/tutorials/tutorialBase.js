@@ -46,7 +46,7 @@ class TutorialBase {
 
     this.__interval = setInterval(async () => {
       await this.takeScreenshot();
-    }, 4000);
+    }, 20000);
   }
 
   stopScreenshooter() {
@@ -553,7 +553,7 @@ class TutorialBase {
   async leave(studyId) {
     if (studyId) {
       await this.toDashboard()
-      await this.removeStudy(studyId);
+      await this.removeStudy(studyId, 1200000);
     }
     await this.logOut();
     await this.close();
