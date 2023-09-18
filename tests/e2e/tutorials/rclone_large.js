@@ -71,7 +71,7 @@ async function runTutorial() {
     console.log('Tutorial error: ' + err);
   }
   finally {
-    await tutorial.leave(studyId);
+    await tutorial.leave(studyId, 1200000);
   }
 
   if (tutorial.getTutorialFailed()) {

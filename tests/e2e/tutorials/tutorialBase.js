@@ -550,10 +550,10 @@ class TutorialBase {
     }
   }
 
-  async leave(studyId) {
+  async leave(studyId, waitForUnlock) {
     if (studyId) {
       await this.toDashboard()
-      await this.removeStudy(studyId, 1200000);
+      await this.removeStudy(studyId, waitForUnlock);
     }
     await this.logOut();
     await this.close();
@@ -576,18 +576,18 @@ class TutorialBase {
     await this.takeScreenshot("toDashboard_after");
   }
 
-  async removeStudy(studyId, waitFor = 5000) {
+  async removeStudy(studyId, waitFor = 60000) {
     await auto.dashboardStudiesBrowser(this.__page);
-    await this.waitFor(waitFor, 'Wait to be unlocked');
+    await this.waitFor(5000, 'Wait to be unlocked');
     await this.takeScreenshot("deleteFirstStudy_before");
-    const intervalWait = 3000;
+    const intervalWait = 5000;
     try {
-      const nTries = 20;
+      const nTries = waitFor/intervalWait;
       let i
       for (i = 0; i < nTries; i++) {
         const cardUnlocked = await auto.deleteFirstStudy(this.__page, this.__templateName);
         if (cardUnlocked) {
-          console.log("Study Card unlocked in " + ((waitFor + intervalWait*i)/1000) + "s");
+          console.log("Study Card unlocked in " + ((intervalWait*i)/1000) + "s");
           break;
         }
         console.log(studyId, "study card still locked");
