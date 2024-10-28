@@ -1300,7 +1300,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
-      - uses: actions/setup-node@v4.0.4
+      - uses: actions/setup-node@v4.1.0
         with:
           node-version: ${{ matrix.node }}
           cache: "npm"
@@ -2371,7 +2371,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - uses: actions/setup-node@v4.0.4
+      - uses: actions/setup-node@v4.1.0
         with:
           node-version: ${{ matrix.node }}
           cache: "npm"
