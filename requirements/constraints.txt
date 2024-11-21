@@ -38,7 +38,7 @@ fastapi<0.100.0
 pydantic<2.0
 
 # TODO: includes async features https://docs.sqlalchemy.org/en/14/changelog/migration_20.html
-sqlalchemy<2.0
+sqlalchemy<3.0
 
 
 # SEE https://github.com/pytest-dev/pytest-asyncio/issues/706
