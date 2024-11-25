@@ -332,7 +332,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -383,7 +383,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -428,7 +428,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -473,7 +473,7 @@ jobs:
           with:
             python-version: ${{ matrix.python }}
         - name: install uv
-          uses: astral-sh/setup-uv@v3
+          uses: astral-sh/setup-uv@v4
           with:
             version: "0.4.x"
             enable-cache: false
@@ -518,7 +518,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -568,7 +568,7 @@ jobs:
       - name: install rclone
         run: sudo ./ci/github/helpers/install_rclone.bash
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -616,7 +616,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -661,7 +661,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -712,7 +712,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -760,7 +760,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -814,7 +814,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -873,7 +873,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -969,7 +969,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1023,7 +1023,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1071,7 +1071,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1119,7 +1119,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1167,7 +1167,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1225,7 +1225,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1273,7 +1273,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1321,7 +1321,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1379,7 +1379,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1427,7 +1427,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1486,7 +1486,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1521,7 +1521,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1569,7 +1569,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1617,7 +1617,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1665,7 +1665,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1713,7 +1713,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1761,7 +1761,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1810,7 +1810,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1860,7 +1860,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -1969,7 +1969,7 @@ jobs:
       - name: load docker images
         run: make load-images local-src=/${{ runner.temp }}/build
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2032,7 +2032,7 @@ jobs:
       - name: load docker images
         run: make load-images local-src=/${{ runner.temp }}/build
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2095,7 +2095,7 @@ jobs:
       - name: load docker images
         run: make load-images local-src=/${{ runner.temp }}/build
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2162,7 +2162,7 @@ jobs:
       - name: install rclone
         run: sudo ./ci/github/helpers/install_rclone.bash
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2227,7 +2227,7 @@ jobs:
       - name: install rclone
         run: sudo ./ci/github/helpers/install_rclone.bash
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2291,7 +2291,7 @@ jobs:
       - name: load docker images
         run: make load-images local-src=/${{ runner.temp }}/build
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2368,7 +2368,7 @@ jobs:
       - name: load docker images
         run: make load-images local-src=/${{ runner.temp }}/build
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2455,7 +2455,7 @@ jobs:
       - name: load docker images
         run: make load-images local-src=/${{ runner.temp }}/build
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2515,7 +2515,7 @@ jobs:
       - name: load docker images
         run: make load-images local-src=/${{ runner.temp }}/build
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2586,7 +2586,7 @@ jobs:
       - name: load docker images
         run: make load-images local-src=/${{ runner.temp }}/build
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2649,7 +2649,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
@@ -2711,7 +2711,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
         with:
           version: "0.4.x"
           enable-cache: false
