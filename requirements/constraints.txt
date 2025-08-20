@@ -69,7 +69,7 @@ pennsieve>=999999999
 pytest-lazy-fixture>=999999999
 
 # avoid downgrades of openapi-spec-validator related libraries
-referencing<=0.35.1
+referencing<=0.36.2
 
 # See issue https://github.com/ITISFoundation/osparc-simcore/issues/7300
 pydantic-settings<2.7.1
